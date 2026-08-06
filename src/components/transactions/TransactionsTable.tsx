@@ -24,9 +24,9 @@ const FILTERS: { value: Filter; label: string }[] = [
 ];
 
 const typeChip = {
-  income: { bg: "bg-green-ink/10", text: "text-green-ink", label: "Income" },
-  expense: { bg: "bg-red-ink/10", text: "text-red-ink", label: "Expense" },
-  fee: { bg: "bg-slate/10", text: "text-slate", label: "Fee" },
+  income: { bg: "bg-emerald-600/10", text: "text-emerald-600", label: "Income" },
+  expense: { bg: "bg-destructive/10", text: "text-destructive", label: "Expense" },
+  fee: { bg: "bg-muted/10", text: "text-muted-foreground", label: "Fee" },
 } as const;
 
 export function TransactionsTable({
@@ -111,7 +111,7 @@ export function TransactionsTable({
                     <TableCell className="text-right">
                       <span
                         className={`font-mono text-sm font-medium tabular-nums ${
-                          isIncome ? "text-green-ink" : "text-red-ink"
+                          isIncome ? "text-emerald-600" : "text-destructive"
                         }`}
                       >
                         {isIncome ? "+" : "−"}

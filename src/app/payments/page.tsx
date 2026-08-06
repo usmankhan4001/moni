@@ -78,14 +78,14 @@ export default async function PaymentsPage() {
     >
       {/* Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-ink text-paper p-6 rounded-sm">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-paper/50 mb-2 font-medium">
+        <div className="bg-primary text-primary-foreground p-6 rounded-sm">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-primary-foreground/50 mb-2 font-medium">
             Total pending dues
           </p>
-          <p className="font-mono text-3xl font-semibold tabular-nums text-amber leading-tight">
+          <p className="font-mono text-3xl font-semibold tabular-nums text-primary leading-tight">
             {formatPKR(totalPendingPkr)}
           </p>
-          <p className="text-xs text-paper/40 mt-2">
+          <p className="text-xs text-primary-foreground/40 mt-2">
             {pending.length} pending payment{pending.length === 1 ? "" : "s"} · at
             Rs {settings.exchange_rate.toFixed(2)}/USD
           </p>
@@ -158,7 +158,7 @@ export default async function PaymentsPage() {
                       : ""}
                   </p>
                 </div>
-                <p className="font-mono text-sm font-semibold tabular-nums text-green-ink shrink-0">
+                <p className="font-mono text-sm font-semibold tabular-nums text-emerald-600 shrink-0">
                   {formatPKR(payment.net_pkr)}
                 </p>
               </div>

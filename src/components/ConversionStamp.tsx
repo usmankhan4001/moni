@@ -38,33 +38,33 @@ export function ConversionStamp({
   };
 
   return (
-    <div className="stamp-animate inline-flex flex-col items-center gap-2">
+    <div className="stamp-animate inline-flex flex-col items-center gap-2" suppressHydrationWarning>
       <div
         className={`
           ${sizeClasses[size]}
-          rounded-full border-2 border-amber
+          rounded-full border-2 border-primary
           flex flex-col items-center justify-center
-          bg-amber/5 relative
+          bg-primary/5 relative
           rotate-[-8deg]
         `}
       >
         {/* Double border effect */}
-        <div className="absolute inset-1 rounded-full border border-amber/40" />
+        <div className="absolute inset-1 rounded-full border border-primary/40" />
 
         {/* Content */}
-        <div className="relative z-10 text-center">
-          <p className="font-mono font-semibold text-amber leading-none">
+        <div className="relative z-10 text-center" suppressHydrationWarning>
+          <p className="font-mono font-semibold text-primary leading-none" suppressHydrationWarning>
             {formatPKR(pkrAmount)}
           </p>
-          <p className="text-[8px] uppercase tracking-wider text-amber-dark mt-1 opacity-70">
+          <p className="text-[8px] uppercase tracking-wider text-primary mt-1 opacity-70" suppressHydrationWarning>
             @ {exchangeRate.toFixed(2)}
           </p>
         </div>
       </div>
 
       {showLabel && (
-        <div className="text-center">
-          <p className="text-[10px] uppercase tracking-widest text-slate-light">
+        <div className="text-center" suppressHydrationWarning>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground" suppressHydrationWarning>
             Converted from {formatUSD(usdAmount)}
           </p>
         </div>

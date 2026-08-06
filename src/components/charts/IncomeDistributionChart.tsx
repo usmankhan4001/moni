@@ -14,7 +14,7 @@ const COLORS = ["#D97706", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899", "#6B7280"
 export function IncomeDistributionChart({ data }: DonutChartProps) {
   if (!data || data.length === 0 || data.every((d) => d.value === 0)) {
     return (
-      <div className="h-64 flex items-center justify-center text-xs text-slate-light border border-dashed border-border rounded-lg">
+      <div className="h-64 flex items-center justify-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
         No income distribution data.
       </div>
     );

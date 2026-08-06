@@ -11,8 +11,8 @@ import { calculateOutsourcerPayment } from "@/lib/payments";
 export const dynamic = "force-dynamic";
 
 const statusStyles = {
-  active: "border-green-ink/30 bg-green-ink/10 text-green-ink",
-  completed: "border-amber/30 bg-amber/10 text-amber",
+  active: "border-emerald-600/30 bg-emerald-600/10 text-emerald-600",
+  completed: "border-primary/30 bg-primary/10 text-primary",
   cancelled: "border-border bg-muted text-muted-foreground",
 } as const;
 
@@ -50,24 +50,24 @@ export default async function ProjectsPage() {
     >
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white border border-ledger-dark/50 p-5 rounded-sm">
-          <p className="text-[10px] uppercase tracking-[0.15em] text-slate-light mb-2">
+          <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-2">
             Total projects
           </p>
           <p className="font-mono text-2xl font-semibold tabular-nums">{projects.length}</p>
         </div>
         <div className="bg-white border border-ledger-dark/50 p-5 rounded-sm">
-          <p className="text-[10px] uppercase tracking-[0.15em] text-slate-light mb-2">
+          <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-2">
             Active
           </p>
-          <p className="font-mono text-2xl font-semibold tabular-nums text-green-ink">
+          <p className="font-mono text-2xl font-semibold tabular-nums text-emerald-600">
             {activeCount}
           </p>
         </div>
         <div className="bg-white border border-ledger-dark/50 p-5 rounded-sm">
-          <p className="text-[10px] uppercase tracking-[0.15em] text-slate-light mb-2">
+          <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-2">
             Active value
           </p>
-          <p className="font-mono text-2xl font-semibold tabular-nums text-amber">
+          <p className="font-mono text-2xl font-semibold tabular-nums text-primary">
             {formatUSD(activeValueUsd, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </p>
         </div>
@@ -92,10 +92,10 @@ export default async function ProjectsPage() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <h3 className="font-display text-lg text-ink truncate">
+                    <h3 className="font-display text-lg text-foreground truncate">
                       {project.title}
                     </h3>
-                    <p className="text-sm text-slate-light mt-0.5">
+                    <p className="text-sm text-muted-foreground mt-0.5">
                       {project.outsourcer_name ?? "Unassigned"}
                     </p>
                   </div>
@@ -103,7 +103,7 @@ export default async function ProjectsPage() {
                     <Badge className={statusStyles[project.status]}>
                       {statusLabel(project.status)}
                     </Badge>
-                    <span className="font-mono text-xl font-semibold text-ink tabular-nums">
+                    <span className="font-mono text-xl font-semibold text-foreground tabular-nums">
                       {formatUSD(project.amount_usd, {
                         minimumFractionDigits: 0,
                         maximumFractionDigits: 0,
@@ -117,18 +117,18 @@ export default async function ProjectsPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-ledger/50 flex items-center justify-between gap-4">
-                  <div className="text-xs text-slate-light space-y-1">
+                <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between gap-4">
+                  <div className="text-xs text-muted-foreground space-y-1">
                     <p>
                       Net to outsourcer:{" "}
-                      <span className="font-mono font-medium text-ink tabular-nums">
+                      <span className="font-mono font-medium text-foreground tabular-nums">
                         {formatPKR(calc.netPkr)}
                       </span>
                     </p>
                     <p>
                       After {settings.default_tax_rate}% tax &amp; {settings.default_transfer_fee_rate}%
                       fee · your share{" "}
-                      <span className="font-mono font-medium text-amber tabular-nums">
+                      <span className="font-mono font-medium text-primary tabular-nums">
                         {formatPKR(calc.payAmountPkr)}
                       </span>
                     </p>

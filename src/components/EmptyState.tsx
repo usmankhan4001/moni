@@ -29,7 +29,7 @@ export function EmptyState({
 
 export function SetupRequiredBanner() {
   return (
-    <div className="border border-amber/40 bg-amber/10 rounded-md p-6">
+    <div className="border border-primary/40 bg-primary/10 rounded-md p-6">
       <h2 className="font-display text-xl text-foreground">Connect PostgreSQL Database</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Moni needs a valid PostgreSQL database connection. Set

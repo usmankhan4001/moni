@@ -11,19 +11,20 @@ import { currentMonthKey, monthLabel } from "@/lib/date";
 import { CashFlowChart } from "@/components/charts/CashFlowChart";
 import { IncomeDistributionChart } from "@/components/charts/IncomeDistributionChart";
 import { OutsourcerPayoutChart } from "@/components/charts/OutsourcerPayoutChart";
+import { ClientOnly } from "@/components/ClientOnly";
 
 export const dynamic = "force-dynamic";
 
 const statusStyles = {
-  active: "bg-green-ink/10 text-green-ink border border-green-ink/20",
-  completed: "bg-amber/10 text-amber border border-amber/20",
-  cancelled: "bg-slate/10 text-slate border border-slate/20",
+  active: "bg-emerald-600/10 text-emerald-600 border border-emerald-600/20",
+  completed: "bg-primary/10 text-primary border border-primary/20",
+  cancelled: "bg-muted/10 text-muted-foreground border border-border/20",
 } as const;
 
 const typeConfig = {
-  income: { icon: "↗", color: "text-green-ink", bg: "bg-green-ink/10", prefix: "+" },
-  expense: { icon: "↘", color: "text-red-ink", bg: "bg-red-ink/10", prefix: "−" },
-  fee: { icon: "—", color: "text-slate", bg: "bg-slate/10", prefix: "−" },
+  income: { icon: "↗", color: "text-emerald-600", bg: "bg-emerald-600/10", prefix: "+" },
+  expense: { icon: "↘", color: "text-destructive", bg: "bg-destructive/10", prefix: "−" },
+  fee: { icon: "—", color: "text-muted-foreground", bg: "bg-muted/10", prefix: "−" },
 } as const;
 
 function toUsd(amount: number, currency: "USD" | "PKR", exchangeRate: number): number {
@@ -47,13 +48,13 @@ function ActivityRow({ txn }: { txn: TransactionWithRelations }) {
         <span className={config.color}>{config.icon}</span>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-ink truncate">{txn.description}</p>
+        <p className="text-sm font-medium text-foreground truncate">{txn.description}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          <p className="text-[10px] text-slate-light">{date}</p>
+          <p className="text-[10px] text-muted-foreground">{date}</p>
           {meta && (
             <>
               <span className="text-ledger-dark">·</span>
-              <p className="text-[10px] text-slate-light truncate">{meta}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{meta}</p>
             </>
           )}
         </div>
@@ -215,28 +216,34 @@ async function ChartsSection() {
       <div className="lg:col-span-2 bg-white border border-border/80 rounded-xl p-5 shadow-xs">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-display text-lg text-ink">Cash Flow Trend</h3>
-            <p className="text-xs text-slate-light">Income vs Expenses over the last 6 months (USD)</p>
+            <h3 className="font-display text-lg text-foreground">Cash Flow Trend</h3>
+            <p className="text-xs text-muted-foreground">Income vs Expenses over the last 6 months (USD)</p>
           </div>
         </div>
-        <CashFlowChart data={cashFlowData} />
+        <ClientOnly fallback={<div className="h-64 animate-pulse bg-muted rounded-lg" />}>
+          <CashFlowChart data={cashFlowData} />
+        </ClientOnly>
       </div>
 
       <div className="bg-white border border-border/80 rounded-xl p-5 shadow-xs">
         <div className="mb-4">
-          <h3 className="font-display text-lg text-ink">Income by Account</h3>
-          <p className="text-xs text-slate-light">Distribution across accounts</p>
+          <h3 className="font-display text-lg text-foreground">Income by Account</h3>
+          <p className="text-xs text-muted-foreground">Distribution across accounts</p>
         </div>
-        <IncomeDistributionChart data={incomeDistData} />
+        <ClientOnly fallback={<div className="h-64 animate-pulse bg-muted rounded-lg" />}>
+          <IncomeDistributionChart data={incomeDistData} />
+        </ClientOnly>
       </div>
 
       {outsourcerPayoutData.length > 0 && (
         <div className="lg:col-span-3 bg-white border border-border/80 rounded-xl p-5 shadow-xs">
           <div className="mb-4">
-            <h3 className="font-display text-lg text-ink">Pending Contractor Dues (PKR)</h3>
-            <p className="text-xs text-slate-light">Outstanding monthly payouts per outsourcer</p>
+            <h3 className="font-display text-lg text-foreground">Pending Contractor Dues (PKR)</h3>
+            <p className="text-xs text-muted-foreground">Outstanding monthly payouts per outsourcer</p>
           </div>
-          <OutsourcerPayoutChart data={outsourcerPayoutData} />
+          <ClientOnly fallback={<div className="h-64 animate-pulse bg-muted rounded-lg" />}>
+            <OutsourcerPayoutChart data={outsourcerPayoutData} />
+          </ClientOnly>
         </div>
       )}
     </div>
@@ -260,8 +267,8 @@ async function RecentProjectsSection() {
       {projects.slice(0, 5).map((p) => (
         <div key={p.id} className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-black/5 transition-colors">
           <div className="min-w-0">
-            <p className="font-display text-base text-ink truncate">{p.title}</p>
-            <p className="text-xs text-slate-light mt-0.5">{p.outsourcer_name ?? "Unassigned"}</p>
+            <p className="font-display text-base text-foreground truncate">{p.title}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{p.outsourcer_name ?? "Unassigned"}</p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <span
@@ -269,7 +276,7 @@ async function RecentProjectsSection() {
             >
               {p.status}
             </span>
-            <span className="font-mono text-sm font-semibold text-ink tabular-nums">
+            <span className="font-mono text-sm font-semibold text-foreground tabular-nums">
               {formatUSD(p.amount_usd, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </span>
           </div>
@@ -306,26 +313,26 @@ async function NextPaymentSection() {
   const totalPkr = pending.reduce((sum, p) => sum + p.net_pkr, 0);
 
   return (
-    <div className="mt-6 bg-ink text-paper p-6 rounded-xl shadow-md border border-white/10">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-paper/50 mb-2 font-mono">
+    <div className="mt-6 bg-primary text-primary-foreground p-6 rounded-xl shadow-md border border-white/10">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-primary-foreground/50 mb-2 font-mono">
         Next Settlement Run
       </p>
       {pending.length > 0 ? (
         <>
-          <p className="font-display text-2xl text-paper">
+          <p className="font-display text-2xl text-primary-foreground">
             {pending.length === 1 ? "One payout pending" : `${pending.length} payouts pending`}
           </p>
           <div className="mt-4 pt-4 border-t border-white/10 flex items-baseline justify-between gap-4">
-            <span className="text-xs text-paper/70">Total Due to Outsourcers</span>
-            <span className="font-mono text-lg font-semibold text-amber tabular-nums">
+            <span className="text-xs text-primary-foreground/70">Total Due to Outsourcers</span>
+            <span className="font-mono text-lg font-semibold text-primary tabular-nums">
               {formatPKR(totalPkr)}
             </span>
           </div>
         </>
       ) : (
-        <p className="mt-2 text-xs text-paper/70 leading-relaxed">
+        <p className="mt-2 text-xs text-primary-foreground/70 leading-relaxed">
           Nothing due right now. Generate monthly payment runs from the{" "}
-          <a href="/payments" className="text-amber underline underline-offset-2">
+          <a href="/payments" className="text-primary underline underline-offset-2">
             Payments page
           </a>
           .
@@ -367,10 +374,10 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-xl text-ink">Recent Projects</h2>
+            <h2 className="font-display text-xl text-foreground">Recent Projects</h2>
             <a
               href="/projects"
-              className="text-xs uppercase tracking-widest text-amber hover:text-amber-dark transition-colors font-semibold"
+              className="text-xs uppercase tracking-widest text-primary hover:text-primary transition-colors font-semibold"
             >
               View all
             </a>
@@ -382,10 +389,10 @@ export default function DashboardPage() {
 
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-xl text-ink">Recent Ledger Activity</h2>
+            <h2 className="font-display text-xl text-foreground">Recent Ledger Activity</h2>
             <a
               href="/transactions"
-              className="text-xs uppercase tracking-widest text-amber hover:text-amber-dark transition-colors font-semibold"
+              className="text-xs uppercase tracking-widest text-primary hover:text-primary transition-colors font-semibold"
             >
               View all
             </a>

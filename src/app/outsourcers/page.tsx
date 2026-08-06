@@ -89,40 +89,40 @@ export default async function OutsourcersPage() {
           {rows.map((row) => (
             <div
               key={row.id}
-              className="bg-white border border-ledger-dark/50 rounded-sm p-5 hover:border-amber/30 transition-colors"
+              className="bg-white border border-ledger-dark/50 rounded-sm p-5 hover:border-primary/30 transition-colors"
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-ink/5 flex items-center justify-center font-mono text-sm font-semibold text-ink">
+                  <div className="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center font-mono text-sm font-semibold text-foreground">
                     {initials(row.name)}
                   </div>
                   <div>
-                    <h3 className="font-display text-lg text-ink">{row.name}</h3>
-                    <p className="text-[10px] uppercase tracking-widest text-slate-light mt-0.5">
+                    <h3 className="font-display text-lg text-foreground">{row.name}</h3>
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-0.5">
                       Tax {row.tax_rate}% · Transfer {row.transfer_fee_rate}%
                     </p>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <p className="font-mono text-xl font-semibold text-ink tabular-nums">
+                  <p className="font-mono text-xl font-semibold text-foreground tabular-nums">
                     {row.completedUsd > 0 ? formatUSD(row.completedUsd) : "—"}
                   </p>
-                  <p className="text-[10px] uppercase tracking-widest text-slate-light mt-1">
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
                     {pluralize(row.completedCount, "completed project")}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-ledger/50 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs text-slate-light">
+              <div className="mt-4 pt-4 border-t border-border/50 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">
                   Monthly would-pay:{" "}
                   {row.monthlyPayPkr !== null ? (
-                    <span className="font-mono font-medium text-amber tabular-nums">
+                    <span className="font-mono font-medium text-primary tabular-nums">
                       {formatPKR(row.monthlyPayPkr)}
                     </span>
                   ) : (
-                    <span className="font-mono text-ink">—</span>
+                    <span className="font-mono text-foreground">—</span>
                   )}
                   <span className="ml-1">
                     · {settings.pay_percentage}% of net

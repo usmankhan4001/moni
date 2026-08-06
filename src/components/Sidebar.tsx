@@ -29,15 +29,15 @@ export function Sidebar() {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-ink text-paper flex flex-col z-50 max-lg:hidden border-r border-white/10">
+      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-primary text-primary-foreground flex flex-col z-50 max-lg:hidden border-r border-white/10">
         <div className="px-6 py-6 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-amber text-ink font-display text-xl font-bold flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-primary text-foreground font-display text-xl font-bold flex items-center justify-center">
               M
             </div>
             <div>
-              <h1 className="font-display text-2xl tracking-tight leading-none text-paper">Moni</h1>
-              <p className="text-[10px] text-paper/50 mt-1 font-mono uppercase tracking-widest">
+              <h1 className="font-display text-2xl tracking-tight leading-none text-primary-foreground">Moni</h1>
+              <p className="text-[10px] text-primary-foreground/50 mt-1 font-mono uppercase tracking-widest">
                 Finance Manager
               </p>
             </div>
@@ -57,12 +57,12 @@ export function Sidebar() {
                   flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all
                   ${
                     isActive
-                      ? "bg-amber/15 text-amber font-semibold border-l-2 border-amber"
-                      : "text-paper/70 hover:text-paper hover:bg-white/5"
+                      ? "bg-primary/15 text-primary font-semibold border-l-2 border-primary"
+                      : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-white/5"
                   }
                 `}
               >
-                <Icon className={`w-4 h-4 ${isActive ? "text-amber" : "text-paper/60"}`} />
+                <Icon className={`w-4 h-4 ${isActive ? "text-primary" : "text-primary-foreground/60"}`} />
                 <span>{item.label}</span>
               </Link>
             );
@@ -70,31 +70,31 @@ export function Sidebar() {
         </nav>
 
         <div className="px-6 py-4 border-t border-white/10 bg-white/5">
-          <p className="text-[10px] uppercase tracking-widest text-paper/50 mb-1">
+          <p className="text-[10px] uppercase tracking-widest text-primary-foreground/50 mb-1">
             Live FX Rate
           </p>
-          <p className="font-mono text-base text-amber font-semibold tabular-nums">
+          <p className="font-mono text-base text-primary font-semibold tabular-nums">
             USD 1 = PKR 284.50
           </p>
         </div>
       </aside>
 
       {/* Mobile Top Header */}
-      <header className="lg:hidden sticky top-0 z-50 bg-ink text-paper px-5 py-3.5 flex items-center justify-between border-b border-white/10">
+      <header className="lg:hidden sticky top-0 z-50 bg-primary text-primary-foreground px-5 py-3.5 flex items-center justify-between border-b border-white/10">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-md bg-amber text-ink font-display text-lg font-bold flex items-center justify-center">
+          <div className="w-7 h-7 rounded-md bg-primary text-foreground font-display text-lg font-bold flex items-center justify-center">
             M
           </div>
-          <span className="font-display text-xl tracking-tight text-paper">Moni</span>
+          <span className="font-display text-xl tracking-tight text-primary-foreground">Moni</span>
         </Link>
         <div className="flex items-center gap-3">
-          <span className="font-mono text-xs text-amber tabular-nums">$→Rs 284.50</span>
+          <span className="font-mono text-xs text-primary tabular-nums">$→Rs 284.50</span>
         </div>
       </header>
 
       {/* Mobile Bottom Dock Navigation */}
       <nav
-        className="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-white/10 bg-ink/95 backdrop-blur-md text-paper pb-[env(safe-area-inset-bottom)]"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-white/10 bg-primary/95 backdrop-blur-md text-primary-foreground pb-[env(safe-area-inset-bottom)]"
         aria-label="Mobile Navigation"
       >
         <div className="grid grid-cols-7 text-center">
@@ -108,10 +108,10 @@ export function Sidebar() {
                 aria-current={isActive ? "page" : undefined}
                 className={`
                   flex flex-col items-center justify-center py-2.5 text-[9px] font-medium uppercase tracking-tighter transition-colors
-                  ${isActive ? "text-amber font-bold" : "text-paper/50 hover:text-paper"}
+                  ${isActive ? "text-primary font-bold" : "text-primary-foreground/50 hover:text-primary-foreground"}
                 `}
               >
-                <Icon className={`w-4 h-4 mb-0.5 ${isActive ? "text-amber" : "text-paper/60"}`} />
+                <Icon className={`w-4 h-4 mb-0.5 ${isActive ? "text-primary" : "text-primary-foreground/60"}`} />
                 <span className="truncate max-w-[42px]">{item.label}</span>
               </Link>
             );

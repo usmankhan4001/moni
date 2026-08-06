@@ -46,17 +46,17 @@ export function PaymentVoucherDialog({ payment }: PaymentVoucherProps) {
           <span>Voucher</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md bg-paper p-6 print:p-0 print:border-none">
+      <DialogContent className="max-w-md bg-background p-6 print:p-0 print:border-none">
         <DialogHeader className="print:hidden">
-          <DialogTitle className="font-display text-xl text-ink">Payment Voucher</DialogTitle>
+          <DialogTitle className="font-display text-xl text-foreground">Payment Voucher</DialogTitle>
         </DialogHeader>
 
         <div id="payment-voucher" className="space-y-6 pt-2">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border/80 pb-4">
             <div>
-              <h2 className="font-display text-2xl text-ink">Moni</h2>
-              <p className="text-[10px] font-mono text-slate-light uppercase tracking-widest">
+              <h2 className="font-display text-2xl text-foreground">Moni</h2>
+              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
                 Freelance Finance Manager
               </p>
             </div>
@@ -64,13 +64,13 @@ export function PaymentVoucherDialog({ payment }: PaymentVoucherProps) {
               <span
                 className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
                   payment.status === "paid"
-                    ? "bg-green-ink/10 text-green-ink border border-green-ink/20"
-                    : "bg-amber/10 text-amber border border-amber/20"
+                    ? "bg-emerald-600/10 text-emerald-600 border border-emerald-600/20"
+                    : "bg-primary/10 text-primary border border-primary/20"
                 }`}
               >
                 {payment.status}
               </span>
-              <p className="text-xs font-mono text-slate-light mt-1">
+              <p className="text-xs font-mono text-muted-foreground mt-1">
                 Month: {payment.month.slice(0, 7)}
               </p>
             </div>
@@ -79,34 +79,34 @@ export function PaymentVoucherDialog({ payment }: PaymentVoucherProps) {
           {/* Details */}
           <div className="space-y-3 text-sm">
             <div className="flex justify-between py-1 border-b border-border/40">
-              <span className="text-slate-light">Outsourcer Name</span>
-              <span className="font-semibold text-ink">{payment.outsourcer_name || "N/A"}</span>
+              <span className="text-muted-foreground">Outsourcer Name</span>
+              <span className="font-semibold text-foreground">{payment.outsourcer_name || "N/A"}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-border/40">
-              <span className="text-slate-light">Gross Earnings (USD)</span>
+              <span className="text-muted-foreground">Gross Earnings (USD)</span>
               <span className="font-mono font-medium">{formatUSD(payment.gross_usd)}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-border/40">
-              <span className="text-slate-light">Tax Deduction ({payment.tax_rate}%)</span>
-              <span className="font-mono text-red-ink">− {formatUSD(payment.tax_usd)}</span>
+              <span className="text-muted-foreground">Tax Deduction ({payment.tax_rate}%)</span>
+              <span className="font-mono text-destructive">− {formatUSD(payment.tax_usd)}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-border/40">
-              <span className="text-slate-light">Transfer Fee ({payment.transfer_fee_rate}%)</span>
-              <span className="font-mono text-red-ink">− {formatUSD(payment.transfer_fee_usd)}</span>
+              <span className="text-muted-foreground">Transfer Fee ({payment.transfer_fee_rate}%)</span>
+              <span className="font-mono text-destructive">− {formatUSD(payment.transfer_fee_usd)}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-border/40">
-              <span className="text-slate-light">Net Amount (USD)</span>
-              <span className="font-mono font-semibold text-ink">{formatUSD(payment.net_usd)}</span>
+              <span className="text-muted-foreground">Net Amount (USD)</span>
+              <span className="font-mono font-semibold text-foreground">{formatUSD(payment.net_usd)}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-border/40">
-              <span className="text-slate-light">Exchange Rate</span>
+              <span className="text-muted-foreground">Exchange Rate</span>
               <span className="font-mono">USD 1 = PKR {payment.exchange_rate}</span>
             </div>
 
             {/* Total Payable PKR */}
-            <div className="flex justify-between py-3 bg-amber/10 border border-amber/30 rounded-lg px-4 mt-4">
-              <span className="font-bold text-ink">Total Net Payout (PKR)</span>
-              <span className="font-mono font-bold text-lg text-amber">
+            <div className="flex justify-between py-3 bg-primary/10 border border-primary/30 rounded-lg px-4 mt-4">
+              <span className="font-bold text-foreground">Total Net Payout (PKR)</span>
+              <span className="font-mono font-bold text-lg text-primary">
                 {formatPKR(payment.net_pkr)}
               </span>
             </div>

@@ -72,7 +72,7 @@ export function ProjectForm({
         />
       ) : (
         <DialogTrigger asChild>
-          <Button className="bg-ink text-paper hover:bg-ink/90 rounded-sm px-5 text-xs uppercase tracking-widest">
+          <Button className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-sm px-5 text-xs uppercase tracking-widest">
             Add project
           </Button>
         </DialogTrigger>

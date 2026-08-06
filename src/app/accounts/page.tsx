@@ -62,11 +62,11 @@ export default async function AccountsPage() {
             return (
               <div
                 key={account.id}
-                className="bg-white border border-ledger-dark/50 rounded-sm p-5 hover:border-amber/30 transition-colors"
+                className="bg-white border border-ledger-dark/50 rounded-sm p-5 hover:border-primary/30 transition-colors"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="font-display text-lg text-ink truncate">
+                    <h3 className="font-display text-lg text-foreground truncate">
                       {account.name}
                     </h3>
                     <Badge
@@ -79,14 +79,14 @@ export default async function AccountsPage() {
                   <DeleteAccountButton id={account.id} name={account.name} />
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-ledger/50">
-                  <p className="text-[10px] uppercase tracking-[0.15em] text-slate-light mb-1">
+                <div className="mt-4 pt-4 border-t border-border/50">
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-1">
                     Balance
                   </p>
-                  <p className="font-mono text-2xl font-semibold text-ink tabular-nums">
+                  <p className="font-mono text-2xl font-semibold text-foreground tabular-nums">
                     {isUsd ? formatUSD(account.balance) : formatPKR(account.balance)}
                   </p>
-                  <p className="text-xs text-slate-light mt-1.5">
+                  <p className="text-xs text-muted-foreground mt-1.5">
                     {count === 1
                       ? "Only one in this currency"
                       : `${count} ${account.currency} accounts in total`}

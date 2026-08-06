@@ -43,7 +43,7 @@ export function BackupManager({ history }: { history: BackupRecord[] }) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-2 text-amber">
+        <div className="flex items-center gap-2 text-primary">
           <CloudUpload className="w-5 h-5" />
           <CardTitle>Cloudflare R2 Cloud Backups</CardTitle>
         </div>
@@ -52,11 +52,11 @@ export function BackupManager({ history }: { history: BackupRecord[] }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="p-4 rounded-lg bg-amber/5 border border-amber/20 flex items-start gap-3">
-          <CheckCircle2 className="w-5 h-5 text-amber shrink-0 mt-0.5" />
-          <div className="text-xs text-ink space-y-1">
+        <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 flex items-start gap-3">
+          <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+          <div className="text-xs text-foreground space-y-1">
             <p className="font-semibold">Cloudflare R2 Storage Active</p>
-            <p className="text-slate-light">
+            <p className="text-muted-foreground">
               10 GB free monthly storage with zero egress fees. Snapshots are encrypted and saved securely.
             </p>
           </div>
@@ -64,15 +64,15 @@ export function BackupManager({ history }: { history: BackupRecord[] }) {
 
         {history.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-ink uppercase tracking-wider font-mono">Recent Snapshots</p>
+            <p className="text-xs font-semibold text-foreground uppercase tracking-wider font-mono">Recent Snapshots</p>
             <div className="divide-y divide-border/60 border border-border/80 rounded-lg overflow-hidden bg-white text-xs">
               {history.map((h) => (
                 <div key={h.id} className="p-3 flex items-center justify-between">
                   <div className="flex items-center gap-2 truncate">
-                    <HardDrive className="w-4 h-4 text-slate-light" />
+                    <HardDrive className="w-4 h-4 text-muted-foreground" />
                     <span className="font-mono truncate">{h.fileKey}</span>
                   </div>
-                  <span className="text-slate-light font-mono tabular-nums text-[10px]">
+                  <span className="text-muted-foreground font-mono tabular-nums text-[10px]">
                     {(h.fileSize / 1024).toFixed(1)} KB
                   </span>
                 </div>
@@ -82,7 +82,7 @@ export function BackupManager({ history }: { history: BackupRecord[] }) {
         )}
       </CardContent>
       <CardFooter className="justify-end">
-        <Button onClick={handleBackup} disabled={pending} className="bg-ink text-paper hover:bg-ink/90">
+        <Button onClick={handleBackup} disabled={pending} className="bg-primary text-primary-foreground hover:bg-primary/90">
           {pending ? "Creating Backup Snapshot…" : "Create R2 Backup Now"}
         </Button>
       </CardFooter>

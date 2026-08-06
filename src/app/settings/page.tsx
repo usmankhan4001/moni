@@ -58,25 +58,25 @@ export default async function SettingsPage() {
               <ol className="space-y-3">
                 {STEPS.map((step, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm">
-                    <span className="mt-px flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber/10 font-mono text-xs font-semibold text-amber tabular-nums">
+                    <span className="mt-px flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 font-mono text-xs font-semibold text-primary tabular-nums">
                       {i + 1}
                     </span>
                     <span className="text-muted-foreground">{step(settings)}</span>
                   </li>
                 ))}
               </ol>
-              <p className="mt-5 rounded-sm bg-ledger/50 p-4 text-xs text-muted-foreground">
+              <p className="mt-5 rounded-sm bg-muted/50 p-4 text-xs text-muted-foreground">
                 So a{" "}
-                <span className="font-mono font-medium text-ink tabular-nums">
+                <span className="font-mono font-medium text-foreground tabular-nums">
                   {formatUSD(EXAMPLE_GROSS_USD, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </span>{" "}
                 project nets{" "}
-                <span className="font-mono font-medium text-ink tabular-nums">
+                <span className="font-mono font-medium text-foreground tabular-nums">
                   {formatPKR(example.netPkr)}
                 </span>{" "}
                 in PKR after all deductions at the current rates, and the
                 outsourcer would receive{" "}
-                <span className="font-mono font-medium text-amber tabular-nums">
+                <span className="font-mono font-medium text-primary tabular-nums">
                   {formatPKR(example.payAmountPkr)}
                 </span>{" "}
                 — that&apos;s the {settings.pay_percentage}% you pass along.

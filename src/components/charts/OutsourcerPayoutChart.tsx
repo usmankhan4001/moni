@@ -12,7 +12,7 @@ interface BarChartProps {
 export function OutsourcerPayoutChart({ data }: BarChartProps) {
   if (!data || data.length === 0 || data.every((d) => d.payoutPkr === 0)) {
     return (
-      <div className="h-64 flex items-center justify-center text-xs text-slate-light border border-dashed border-border rounded-lg">
+      <div className="h-64 flex items-center justify-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
         No outsourcer payout data pending.
       </div>
     );

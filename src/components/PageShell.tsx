@@ -16,7 +16,7 @@ export function PageShell({
       <Sidebar />
       <main className="flex-1 lg:ml-64 max-lg:w-full">
         <div className="page-enter">
-          <header className="border-b border-border/60 bg-paper/80 backdrop-blur-sm sticky top-0 lg:top-0 z-40">
+          <header className="border-b border-border/60 bg-background/80 backdrop-blur-sm sticky top-0 lg:top-0 z-40">
             <div className="px-5 lg:px-8 py-5 flex items-center justify-between gap-4">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">

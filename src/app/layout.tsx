@@ -58,7 +58,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${dmSerif.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable}`}
     >
-      <body className="min-h-screen bg-paper text-ink font-body antialiased">
+      <body className="min-h-screen bg-background text-foreground font-body antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
