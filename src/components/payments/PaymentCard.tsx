@@ -29,7 +29,7 @@ export function PaymentCard({ payment }: { payment: PaymentWithOutsourcer }) {
   const name = payment.outsourcer_name ?? "Unknown outsourcer";
 
   return (
-    <div className="bg-white border border-ledger-dark/50 rounded-sm p-5 shadow-xs">
+    <div className="bg-white border border-border/50 rounded-sm p-5 shadow-xs">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
@@ -65,7 +65,7 @@ export function PaymentCard({ payment }: { payment: PaymentWithOutsourcer }) {
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-px bg-ledger-dark/70 rounded-sm overflow-hidden border border-ledger-dark/70">
+      <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-px bg-border/70 rounded-sm overflow-hidden border border-border/70">
         <BreakdownCell label="Gross">{formatUSD(payment.gross_usd)}</BreakdownCell>
         <BreakdownCell label={`Tax (${payment.tax_rate}%)`} tone="text-destructive">
           −{formatUSD(payment.tax_usd)}

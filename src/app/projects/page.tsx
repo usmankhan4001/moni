@@ -49,13 +49,13 @@ export default async function ProjectsPage() {
       }
     >
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white border border-ledger-dark/50 p-5 rounded-sm">
+        <div className="bg-white border border-border/50 p-5 rounded-sm">
           <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-2">
             Total projects
           </p>
           <p className="font-mono text-2xl font-semibold tabular-nums">{projects.length}</p>
         </div>
-        <div className="bg-white border border-ledger-dark/50 p-5 rounded-sm">
+        <div className="bg-white border border-border/50 p-5 rounded-sm">
           <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-2">
             Active
           </p>
@@ -63,7 +63,7 @@ export default async function ProjectsPage() {
             {activeCount}
           </p>
         </div>
-        <div className="bg-white border border-ledger-dark/50 p-5 rounded-sm">
+        <div className="bg-white border border-border/50 p-5 rounded-sm">
           <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-2">
             Active value
           </p>
@@ -88,7 +88,7 @@ export default async function ProjectsPage() {
             return (
               <div
                 key={project.id}
-                className="bg-white border border-ledger-dark/50 rounded-sm p-5"
+                className="bg-white border border-border/50 rounded-sm p-5"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">

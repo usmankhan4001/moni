@@ -53,7 +53,7 @@ function ActivityRow({ txn }: { txn: TransactionWithRelations }) {
           <p className="text-[10px] text-muted-foreground">{date}</p>
           {meta && (
             <>
-              <span className="text-ledger-dark">·</span>
+              <span className="text-border">·</span>
               <p className="text-[10px] text-muted-foreground truncate">{meta}</p>
             </>
           )}

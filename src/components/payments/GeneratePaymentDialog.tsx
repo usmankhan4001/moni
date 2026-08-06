@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,9 +45,13 @@ export function GeneratePaymentFields({
   payPercentage: number;
 }) {
   const router = useRouter();
-  const [month, setMonth] = useState(currentMonthKey());
+  const [month, setMonth] = useState("");
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMonth(currentMonthKey());
+  }, []);
 
   async function handleGenerate() {
     setRunning(true);

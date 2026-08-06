@@ -62,7 +62,7 @@ export default async function AccountsPage() {
             return (
               <div
                 key={account.id}
-                className="bg-white border border-ledger-dark/50 rounded-sm p-5 hover:border-primary/30 transition-colors"
+                className="bg-white border border-border/50 rounded-sm p-5 hover:border-primary/30 transition-colors"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">

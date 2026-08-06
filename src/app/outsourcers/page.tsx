@@ -89,7 +89,7 @@ export default async function OutsourcersPage() {
           {rows.map((row) => (
             <div
               key={row.id}
-              className="bg-white border border-ledger-dark/50 rounded-sm p-5 hover:border-primary/30 transition-colors"
+              className="bg-white border border-border/50 rounded-sm p-5 hover:border-primary/30 transition-colors"
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex items-center gap-3">

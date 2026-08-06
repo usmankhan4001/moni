@@ -14,7 +14,7 @@ export function StatCard({ label, value, sublabel, accent = "default" }: StatCar
   };
 
   return (
-    <div className="bg-white border border-ledger-dark/50 p-5 rounded-sm">
+    <div className="bg-white border border-border/50 p-5 rounded-sm">
       <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-2 font-medium">
         {label}
       </p>

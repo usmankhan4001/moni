@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PlusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -57,8 +57,12 @@ export function NewTransactionDialog({
   const [currency, setCurrency] = useState<Currency>("USD");
   const [projectId, setProjectId] = useState(NONE);
   const [accountId, setAccountId] = useState(NONE);
-  const [date, setDate] = useState(todayISO());
+  const [date, setDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    setDate(todayISO());
+  }, []);
 
   function reset() {
     setType("expense");
