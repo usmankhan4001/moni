@@ -1,5 +1,6 @@
 import { cookies, headers } from "next/headers";
 import { db, schema, isDatabaseConfigured } from "@/db";
+import { runMigrations } from "@/db/migrate";
 import { eq } from "drizzle-orm";
 
 export const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
@@ -11,11 +12,26 @@ export function getDeploymentMode(): DeploymentMode {
   return (process.env.DEPLOYMENT_MODE as DeploymentMode) || "single_user";
 }
 
+let migrationPromise: Promise<void> | null = null;
+
+export async function ensureMigrations(): Promise<void> {
+  if (!isDatabaseConfigured() || !db) return;
+  if (!migrationPromise) {
+    migrationPromise = runMigrations().catch((err) => {
+      console.error("Auto migration error:", err);
+      migrationPromise = null;
+    });
+  }
+  return migrationPromise;
+}
+
 /**
  * Ensures the default workspace exists in single-user mode or fallback setups.
  */
 export async function ensureDefaultTenant(): Promise<string> {
   if (!isDatabaseConfigured() || !db) return DEFAULT_TENANT_ID;
+
+  await ensureMigrations();
 
   try {
     const existing = await db
@@ -57,6 +73,8 @@ export async function getTenantId(): Promise<string> {
   if (mode === "single_user") {
     return ensureDefaultTenant();
   }
+
+  await ensureMigrations();
 
   // Multi-tenant mode: Check request headers or cookies
   try {
