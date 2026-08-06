@@ -1,141 +1,224 @@
 ﻿import { cache } from "react";
-import { createServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import { db, schema, isDatabaseConfigured } from "@/db";
+import { eq, and, gte, lt, desc, count, sum } from "drizzle-orm";
+import { getTenantId } from "@/lib/tenant";
 import { getMonthRange } from "@/lib/date";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type {
-  Account,
-  AppSettings,
-  Outsourcer,
-  OutsourcerPayment,
-  Project,
-  Transaction,
-} from "@/lib/database.types";
+
+export interface AppSettings {
+  id: string;
+  tenant_id: string;
+  exchange_rate: number;
+  pay_percentage: number;
+  default_tax_rate: number;
+  default_transfer_fee_rate: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AccountWithBalance {
+  id: string;
+  tenant_id: string;
+  name: string;
+  currency: "USD" | "PKR";
+  balance: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Outsourcer {
+  id: string;
+  tenant_id: string;
+  name: string;
+  tax_rate: number;
+  transfer_fee_rate: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectWithRelations {
+  id: string;
+  tenant_id: string;
+  title: string;
+  amount_usd: number;
+  outsourcer_id: string | null;
+  outsourcer_name: string | null;
+  status: "active" | "completed" | "cancelled";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TransactionWithRelations {
+  id: string;
+  tenant_id: string;
+  type: "income" | "expense" | "fee";
+  description: string;
+  amount: number;
+  currency: "USD" | "PKR";
+  project_id: string | null;
+  account_id: string | null;
+  account_name: string | null;
+  project_title: string | null;
+  transaction_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaymentWithOutsourcer {
+  id: string;
+  tenant_id: string;
+  outsourcer_id: string;
+  outsourcer_name: string | null;
+  month: string;
+  gross_usd: number;
+  tax_rate: number;
+  tax_usd: number;
+  transfer_fee_rate: number;
+  transfer_fee_usd: number;
+  net_usd: number;
+  exchange_rate: number;
+  net_pkr: number;
+  status: "pending" | "paid";
+  due_date: string;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 const DEFAULT_SETTINGS: AppSettings = {
-  id: 1,
+  id: "default",
+  tenant_id: "00000000-0000-0000-0000-000000000001",
   exchange_rate: 284.5,
   pay_percentage: 70,
   default_tax_rate: 5,
   default_transfer_fee_rate: 2,
-  created_at: new Date(0).toISOString(),
-  updated_at: new Date(0).toISOString(),
 };
 
 export function isReady(): boolean {
-  return isSupabaseConfigured();
-}
-
-async function client(): Promise<SupabaseClient | null> {
-  if (!isSupabaseConfigured()) return null;
-  return (await createServerSupabase()) as unknown as SupabaseClient;
-}
-
-type RawProject = Project & { outsourcer?: { name: string } | null };
-type RawTransaction = Transaction & {
-  account?: { name: string } | null;
-  project?: { title: string } | null;
-};
-type RawPayment = OutsourcerPayment & { outsourcer?: { name: string } | null };
-
-export interface ProjectWithRelations extends Project {
-  outsourcer_name: string | null;
-}
-
-export interface TransactionWithRelations extends Transaction {
-  account_name: string | null;
-  project_title: string | null;
-}
-
-export interface PaymentWithOutsourcer extends OutsourcerPayment {
-  outsourcer_name: string | null;
-}
-
-function mapProjectRow(p: RawProject): ProjectWithRelations {
-  return { ...p, outsourcer_name: p.outsourcer?.name ?? null };
-}
-
-function mapTransactionRow(t: RawTransaction): TransactionWithRelations {
-  return { ...t, account_name: t.account?.name ?? null, project_title: t.project?.title ?? null };
-}
-
-function mapPaymentRow(p: RawPayment): PaymentWithOutsourcer {
-  return { ...p, outsourcer_name: p.outsourcer?.name ?? null };
+  return isDatabaseConfigured();
 }
 
 /* --------------------------------- Settings ------------------------------- */
 
 export const getSettings = cache(async (): Promise<AppSettings> => {
-  const supabase = await client();
-  if (!supabase) return DEFAULT_SETTINGS;
-  const { data, error } = await supabase
-    .from("app_settings")
-    .select("*")
-    .eq("id", 1)
-    .maybeSingle();
-  if (error) return DEFAULT_SETTINGS;
-  return (data ?? DEFAULT_SETTINGS) as AppSettings;
+  if (!isDatabaseConfigured() || !db) return DEFAULT_SETTINGS;
+  const tenantId = await getTenantId();
+
+  try {
+    const rows = await db
+      .select()
+      .from(schema.appSettings)
+      .where(eq(schema.appSettings.tenantId, tenantId))
+      .limit(1);
+
+    if (rows.length === 0) return { ...DEFAULT_SETTINGS, tenant_id: tenantId };
+
+    const r = rows[0];
+    return {
+      id: r.id,
+      tenant_id: r.tenantId,
+      exchange_rate: Number(r.exchangeRate),
+      pay_percentage: Number(r.payPercentage),
+      default_tax_rate: Number(r.defaultTaxRate),
+      default_transfer_fee_rate: Number(r.defaultTransferFeeRate),
+      created_at: r.createdAt.toISOString(),
+      updated_at: r.updatedAt.toISOString(),
+    };
+  } catch (err) {
+    console.error("Error getting settings:", err);
+    return DEFAULT_SETTINGS;
+  }
 });
 
 /* --------------------------------- Counts --------------------------------- */
 
 export const getAccountCount = cache(async (): Promise<number> => {
-  const supabase = await client();
-  if (!supabase) return 0;
-  const { count, error } = await supabase
-    .from("accounts")
-    .select("*", { count: "exact", head: true });
-  return error ? 0 : (count ?? 0);
+  if (!isDatabaseConfigured() || !db) return 0;
+  const tenantId = await getTenantId();
+  try {
+    const res = await db
+      .select({ val: count() })
+      .from(schema.accounts)
+      .where(eq(schema.accounts.tenantId, tenantId));
+    return Number(res[0]?.val ?? 0);
+  } catch {
+    return 0;
+  }
 });
 
 export const getOutsourcerCount = cache(async (): Promise<number> => {
-  const supabase = await client();
-  if (!supabase) return 0;
-  const { count, error } = await supabase
-    .from("outsourcers")
-    .select("*", { count: "exact", head: true });
-  return error ? 0 : (count ?? 0);
+  if (!isDatabaseConfigured() || !db) return 0;
+  const tenantId = await getTenantId();
+  try {
+    const res = await db
+      .select({ val: count() })
+      .from(schema.outsourcers)
+      .where(eq(schema.outsourcers.tenantId, tenantId));
+    return Number(res[0]?.val ?? 0);
+  } catch {
+    return 0;
+  }
 });
 
 export const getProjectCount = cache(async (): Promise<number> => {
-  const supabase = await client();
-  if (!supabase) return 0;
-  const { count, error } = await supabase
-    .from("projects")
-    .select("*", { count: "exact", head: true });
-  return error ? 0 : (count ?? 0);
+  if (!isDatabaseConfigured() || !db) return 0;
+  const tenantId = await getTenantId();
+  try {
+    const res = await db
+      .select({ val: count() })
+      .from(schema.projects)
+      .where(eq(schema.projects.tenantId, tenantId));
+    return Number(res[0]?.val ?? 0);
+  } catch {
+    return 0;
+  }
 });
 
 /* -------------------------------- Accounts -------------------------------- */
 
-export type AccountWithBalance = Account & { balance: number };
-
 export const getAccounts = cache(async (): Promise<AccountWithBalance[]> => {
-  const supabase = await client();
-  if (!supabase) return [];
+  if (!isDatabaseConfigured() || !db) return [];
+  const tenantId = await getTenantId();
 
-  const { data: accounts, error } = await supabase
-    .from("accounts")
-    .select("*")
-    .order("created_at", { ascending: true });
-  if (error) return [];
+  try {
+    const accList = await db
+      .select()
+      .from(schema.accounts)
+      .where(eq(schema.accounts.tenantId, tenantId));
 
-  const balances = new Map<string, number>();
-  for (const account of accounts as Account[]) {
-    balances.set(account.id, 0);
+    const txns = await db
+      .select({
+        accountId: schema.transactions.accountId,
+        type: schema.transactions.type,
+        amount: schema.transactions.amount,
+      })
+      .from(schema.transactions)
+      .where(eq(schema.transactions.tenantId, tenantId));
+
+    const balances = new Map<string, number>();
+    for (const a of accList) {
+      balances.set(a.id, 0);
+    }
+
+    for (const t of txns) {
+      if (!t.accountId || !balances.has(t.accountId)) continue;
+      const amt = Number(t.amount);
+      const sign = t.type === "income" ? 1 : -1;
+      balances.set(t.accountId, (balances.get(t.accountId) ?? 0) + sign * amt);
+    }
+
+    return accList.map((a) => ({
+      id: a.id,
+      tenant_id: a.tenantId,
+      name: a.name,
+      currency: a.currency as "USD" | "PKR",
+      balance: balances.get(a.id) ?? 0,
+      created_at: a.createdAt.toISOString(),
+      updated_at: a.updatedAt.toISOString(),
+    }));
+  } catch (err) {
+    console.error("Error getting accounts:", err);
+    return [];
   }
-
-  const { data: txns } = await supabase.from("transactions").select("account_id, type, amount");
-  for (const t of (txns ?? []) as Array<{
-    account_id: string | null;
-    type: "income" | "expense" | "fee";
-    amount: number;
-  }>) {
-    if (!t.account_id || !balances.has(t.account_id)) continue;
-    const sign = t.type === "income" ? 1 : -1;
-    balances.set(t.account_id, (balances.get(t.account_id) ?? 0) + sign * t.amount);
-  }
-
-  return (accounts as Account[]).map((a) => ({ ...a, balance: balances.get(a.id) ?? 0 }));
 });
 
 export const getAccountsByCurrency = async (
@@ -148,112 +231,185 @@ export const getAccountsByCurrency = async (
 /* ------------------------------- Outsourcers ------------------------------ */
 
 export const getOutsourcers = cache(async (): Promise<Outsourcer[]> => {
-  const supabase = await client();
-  if (!supabase) return [];
-  const { data, error } = await supabase.from("outsourcers").select("*").order("name");
-  return error ? [] : (data as Outsourcer[]);
+  if (!isDatabaseConfigured() || !db) return [];
+  const tenantId = await getTenantId();
+
+  try {
+    const rows = await db
+      .select()
+      .from(schema.outsourcers)
+      .where(eq(schema.outsourcers.tenantId, tenantId))
+      .orderBy(schema.outsourcers.name);
+
+    return rows.map((r) => ({
+      id: r.id,
+      tenant_id: r.tenantId,
+      name: r.name,
+      tax_rate: Number(r.taxRate),
+      transfer_fee_rate: Number(r.transferFeeRate),
+      created_at: r.createdAt.toISOString(),
+      updated_at: r.updatedAt.toISOString(),
+    }));
+  } catch {
+    return [];
+  }
 });
 
 /* -------------------------------- Projects -------------------------------- */
 
 export const getProjects = cache(async (): Promise<ProjectWithRelations[]> => {
-  const supabase = await client();
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*, outsourcer:outsourcers(name)")
-    .order("created_at", { ascending: false });
-  if (error) return [];
-  return (data ?? []).map(mapProjectRow);
+  if (!isDatabaseConfigured() || !db) return [];
+  const tenantId = await getTenantId();
+
+  try {
+    const rows = await db
+      .select({
+        project: schema.projects,
+        outsourcerName: schema.outsourcers.name,
+      })
+      .from(schema.projects)
+      .leftJoin(
+        schema.outsourcers,
+        eq(schema.projects.outsourcerId, schema.outsourcers.id)
+      )
+      .where(eq(schema.projects.tenantId, tenantId))
+      .orderBy(desc(schema.projects.createdAt));
+
+    return rows.map(({ project, outsourcerName }) => ({
+      id: project.id,
+      tenant_id: project.tenantId,
+      title: project.title,
+      amount_usd: Number(project.amountUsd),
+      outsourcer_id: project.outsourcerId,
+      outsourcer_name: outsourcerName ?? null,
+      status: project.status as "active" | "completed" | "cancelled",
+      created_at: project.createdAt.toISOString(),
+      updated_at: project.updatedAt.toISOString(),
+    }));
+  } catch {
+    return [];
+  }
 });
 
 export const getProjectsByStatus = async (
-  status: Project["status"],
+  status: "active" | "completed" | "cancelled",
 ): Promise<ProjectWithRelations[]> => {
-  const supabase = await client();
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*, outsourcer:outsourcers(name)")
-    .eq("status", status)
-    .order("created_at", { ascending: false });
-  if (error) return [];
-  return (data ?? []).map(mapProjectRow);
+  const all = await getProjects();
+  return all.filter((p) => p.status === status);
 };
-
-export const getProjectById = cache(async (id: string): Promise<Project | null> => {
-  const supabase = await client();
-  if (!supabase) return null;
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-  return error ? null : (data as Project | null);
-});
 
 /* ------------------------------ Transactions ------------------------------ */
 
 export const getTransactions = cache(
   async (month?: string | null): Promise<TransactionWithRelations[]> => {
-    const supabase = await client();
-    if (!supabase) return [];
-    let query = supabase
-      .from("transactions")
-      .select("*, account:accounts(name), project:projects(title)")
-      .order("transaction_date", { ascending: false });
-    const range = month ? getMonthRange(month) : null;
-    if (range) {
-      query = query.gte("transaction_date", range.start).lt("transaction_date", range.end);
+    if (!isDatabaseConfigured() || !db) return [];
+    const tenantId = await getTenantId();
+
+    try {
+      const conditions = [eq(schema.transactions.tenantId, tenantId)];
+      const range = month ? getMonthRange(month) : null;
+      if (range) {
+        conditions.push(gte(schema.transactions.transactionDate, new Date(range.start)));
+        conditions.push(lt(schema.transactions.transactionDate, new Date(range.end)));
+      }
+
+      const rows = await db
+        .select({
+          txn: schema.transactions,
+          accountName: schema.accounts.name,
+          projectTitle: schema.projects.title,
+        })
+        .from(schema.transactions)
+        .leftJoin(schema.accounts, eq(schema.transactions.accountId, schema.accounts.id))
+        .leftJoin(schema.projects, eq(schema.transactions.projectId, schema.projects.id))
+        .where(and(...conditions))
+        .orderBy(desc(schema.transactions.transactionDate));
+
+      return rows.map(({ txn, accountName, projectTitle }) => ({
+        id: txn.id,
+        tenant_id: txn.tenantId,
+        type: txn.type as "income" | "expense" | "fee",
+        description: txn.description,
+        amount: Number(txn.amount),
+        currency: txn.currency as "USD" | "PKR",
+        project_id: txn.projectId,
+        account_id: txn.accountId,
+        account_name: accountName ?? null,
+        project_title: projectTitle ?? null,
+        transaction_date: txn.transactionDate.toISOString(),
+        created_at: txn.createdAt.toISOString(),
+        updated_at: txn.updatedAt.toISOString(),
+      }));
+    } catch {
+      return [];
     }
-    const { data, error } = await query;
-    if (error) return [];
-    return (data ?? []).map(mapTransactionRow);
-  },
+  }
+);
+
+export const getRecentTransactions = cache(
+  async (limit = 5): Promise<TransactionWithRelations[]> => {
+    const all = await getTransactions();
+    return all.slice(0, limit);
+  }
 );
 
 /* -------------------------------- Payments -------------------------------- */
 
 export const getPayments = cache(
   async (month?: string | null): Promise<PaymentWithOutsourcer[]> => {
-    const supabase = await client();
-    if (!supabase) return [];
-    let query = supabase
-      .from("outsourcer_payments")
-      .select("*, outsourcer:outsourcers(name)")
-      .order("due_date", { ascending: false });
-    const range = month ? getMonthRange(month) : null;
-    if (range) {
-      query = query.gte("due_date", range.start).lt("due_date", range.end);
-    }
-    const { data, error } = await query;
-    if (error) return [];
-    return (data ?? []).map(mapPaymentRow);
-  },
-);
+    if (!isDatabaseConfigured() || !db) return [];
+    const tenantId = await getTenantId();
 
-export const getRecentTransactions = cache(
-  async (limit = 5): Promise<TransactionWithRelations[]> => {
-    const supabase = await client();
-    if (!supabase) return [];
-    const { data, error } = await supabase
-      .from("transactions")
-      .select("*, account:accounts(name), project:projects(title)")
-      .order("transaction_date", { ascending: false })
-      .limit(limit);
-    if (error) return [];
-    return (data ?? []).map(mapTransactionRow);
-  },
+    try {
+      const conditions = [eq(schema.outsourcerPayments.tenantId, tenantId)];
+      const range = month ? getMonthRange(month) : null;
+      if (range) {
+        conditions.push(gte(schema.outsourcerPayments.dueDate, range.start));
+        conditions.push(lt(schema.outsourcerPayments.dueDate, range.end));
+      }
+
+      const rows = await db
+        .select({
+          payment: schema.outsourcerPayments,
+          outsourcerName: schema.outsourcers.name,
+        })
+        .from(schema.outsourcerPayments)
+        .leftJoin(
+          schema.outsourcers,
+          eq(schema.outsourcerPayments.outsourcerId, schema.outsourcers.id)
+        )
+        .where(and(...conditions))
+        .orderBy(desc(schema.outsourcerPayments.dueDate));
+
+      return rows.map(({ payment, outsourcerName }) => ({
+        id: payment.id,
+        tenant_id: payment.tenantId,
+        outsourcer_id: payment.outsourcerId,
+        outsourcer_name: outsourcerName ?? null,
+        month: payment.month,
+        gross_usd: Number(payment.grossUsd),
+        tax_rate: Number(payment.taxRate),
+        tax_usd: Number(payment.taxUsd),
+        transfer_fee_rate: Number(payment.transferFeeRate),
+        transfer_fee_usd: Number(payment.transferFeeUsd),
+        net_usd: Number(payment.netUsd),
+        exchange_rate: Number(payment.exchangeRate),
+        net_pkr: Number(payment.netPkr),
+        status: payment.status as "pending" | "paid",
+        due_date: payment.dueDate,
+        paid_at: payment.paidAt ? payment.paidAt.toISOString() : null,
+        created_at: payment.createdAt.toISOString(),
+        updated_at: payment.updatedAt.toISOString(),
+      }));
+    } catch {
+      return [];
+    }
+  }
 );
 
 export const getPendingPaymentCount = cache(async (): Promise<number> => {
-  const supabase = await client();
-  if (!supabase) return 0;
-  const { count, error } = await supabase
-    .from("outsourcer_payments")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "pending");
-  return error ? 0 : (count ?? 0);
+  const payments = await getPayments();
+  return payments.filter((p) => p.status === "pending").length;
 });
 
 /* -------------------------------- Dashboard ------------------------------- */

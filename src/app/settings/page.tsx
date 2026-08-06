@@ -1,5 +1,5 @@
 import { getSettings, isReady } from "@/lib/data";
-import type { AppSettings } from "@/lib/database.types";
+import type { AppSettings } from "@/lib/data";
 import { formatPKR, formatUSD } from "@/lib/format";
 import { calculateOutsourcerPayment } from "@/lib/payments";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,8 @@ import { PageShell } from "@/components/PageShell";
 import { SetupRequiredBanner } from "@/components/EmptyState";
 import { SettingsForm } from "@/components/settings-form";
 import { SeedButton } from "@/components/SeedButton";
+import { BackupManager } from "@/components/BackupManager";
+import { getBackupHistory } from "@/lib/r2";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +28,7 @@ const EXAMPLE_GROSS_USD = 1000;
 export default async function SettingsPage() {
   const ready = isReady();
   const settings = await getSettings();
+  const backupHistory = await getBackupHistory();
 
   const example = calculateOutsourcerPayment(EXAMPLE_GROSS_USD, {
     taxRate: settings.default_tax_rate,
@@ -35,12 +38,14 @@ export default async function SettingsPage() {
   });
 
   return (
-    <PageShell eyebrow="Business" title="Settings">
+    <PageShell eyebrow="Business" title="Settings & Backups">
       {!ready ? (
         <SetupRequiredBanner />
       ) : (
         <div className="space-y-6">
           <SettingsForm settings={settings} />
+
+          <BackupManager history={backupHistory} />
 
           <Card>
             <CardHeader>

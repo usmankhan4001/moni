@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Hisaab — Finance Tracker",
-    short_name: "Hisaab",
-    description: "Track projects, payments, and outsourcer dues across USD and PKR",
+    name: "Moni — Your Freelance Project Finance Manager",
+    short_name: "Moni",
+    description: "Your Freelance Project Finance Manager — USD/PKR ledger, project earnings, and outsourcer dues",
     start_url: "/",
     scope: "/",
     display: "standalone",

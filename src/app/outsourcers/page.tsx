@@ -1,4 +1,4 @@
-import type { Outsourcer } from "@/lib/database.types";
+import type { Outsourcer } from "@/lib/data";
 import { getOutsourcers, getProjects, getSettings } from "@/lib/data";
 import { calculateOutsourcerPayment } from "@/lib/payments";
 import { formatPKR, formatUSD, pluralize } from "@/lib/format";

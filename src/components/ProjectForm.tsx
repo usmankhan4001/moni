@@ -24,7 +24,8 @@ import {
 import { EmptyState } from "@/components/EmptyState";
 import { runAction } from "@/lib/action";
 import { createProject } from "@/app/actions";
-import type { Outsourcer, ProjectStatus } from "@/lib/database.types";
+import type { Outsourcer } from "@/lib/data";
+type ProjectStatus = "active" | "completed" | "cancelled";
 
 export function ProjectForm({
   outsourcers,

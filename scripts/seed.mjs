@@ -1,133 +1,103 @@
-import { config } from "dotenv";
-import { createClient } from "@supabase/supabase-js";
+import pkg from "pg";
+const { Pool } = pkg;
 
-config({ path: [".env.local", ".env"], quiet: true });
+const connectionString = process.env.DATABASE_URL;
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error(
-    [
-      "Missing Supabase environment variables.",
-      "Create a .env.local in the project root with:",
-      "",
-      "  NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co",
-      "  NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>",
-      "",
-      "Then run db/schema.sql in the Supabase SQL editor first (RLS is required).",
-    ].join("\n"),
-  );
+if (!connectionString) {
+  console.error("DATABASE_URL environment variable is not set.");
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const pool = new Pool({ connectionString });
 
-function fail(label, hint) {
-  if (hint?.error) {
-    console.error(`[${label}] Supabase error:`, hint.error.message);
-  } else {
-    console.error(`[${label}] Unexpected failure; is RLS configured (run db/schema.sql)?`);
+async function seed() {
+  console.log("Seeding database via PostgreSQL connection...");
+  const client = await pool.connect();
+
+  try {
+    const tenantId = "00000000-0000-0000-0000-000000000001";
+
+    // Ensure default workspace exists
+    await client.query(
+      `INSERT INTO tenants (id, name, slug, plan)
+       VALUES ($1, 'Personal Workspace', 'default', 'pro')
+       ON CONFLICT (id) DO NOTHING`,
+      [tenantId]
+    );
+
+    // Clear existing data for default tenant
+    await client.query(`DELETE FROM transactions WHERE tenant_id = $1`, [tenantId]);
+    await client.query(`DELETE FROM outsourcer_payments WHERE tenant_id = $1`, [tenantId]);
+    await client.query(`DELETE FROM projects WHERE tenant_id = $1`, [tenantId]);
+    await client.query(`DELETE FROM outsourcers WHERE tenant_id = $1`, [tenantId]);
+    await client.query(`DELETE FROM accounts WHERE tenant_id = $1`, [tenantId]);
+
+    // Insert Accounts
+    const acc1 = await client.query(
+      `INSERT INTO accounts (tenant_id, name, currency) VALUES ($1, 'Wise Business', 'USD') RETURNING id`,
+      [tenantId]
+    );
+    const acc2 = await client.query(
+      `INSERT INTO accounts (tenant_id, name, currency) VALUES ($1, 'HBL Current', 'PKR') RETURNING id`,
+      [tenantId]
+    );
+
+    const wiseId = acc1.rows[0].id;
+
+    // Insert Outsourcers
+    const os1 = await client.query(
+      `INSERT INTO outsourcers (tenant_id, name, tax_rate, transfer_fee_rate) VALUES ($1, 'Ahmed Khan', 5, 2) RETURNING id`,
+      [tenantId]
+    );
+    const os2 = await client.query(
+      `INSERT INTO outsourcers (tenant_id, name, tax_rate, transfer_fee_rate) VALUES ($1, 'Fatima Ali', 5, 2) RETURNING id`,
+      [tenantId]
+    );
+    const os3 = await client.query(
+      `INSERT INTO outsourcers (tenant_id, name, tax_rate, transfer_fee_rate) VALUES ($1, 'Hassan Malik', 5, 2) RETURNING id`,
+      [tenantId]
+    );
+
+    const ahmedId = os1.rows[0].id;
+    const fatimaId = os2.rows[0].id;
+    const hassanId = os3.rows[0].id;
+
+    // Insert Projects
+    await client.query(
+      `INSERT INTO projects (tenant_id, title, amount_usd, outsourcer_id, status)
+       VALUES 
+       ($1, 'E-commerce Dashboard', 2400.00, $2, 'completed'),
+       ($1, 'Mobile App Redesign', 3800.00, $3, 'active'),
+       ($1, 'API Integration', 1500.00, $4, 'active'),
+       ($1, 'Brand Identity', 1800.00, $2, 'completed')`,
+      [tenantId, ahmedId, fatimaId, hassanId]
+    );
+
+    // Insert Transactions
+    await client.query(
+      `INSERT INTO transactions (tenant_id, type, description, amount, currency, account_id)
+       VALUES 
+       ($1, 'income', 'Client payment — Acme Corp', 5200.00, 'USD', $2),
+       ($1, 'expense', 'Cloud hosting — AWS', 95.00, 'USD', $2)`,
+      [tenantId, wiseId]
+    );
+
+    // Insert App Settings
+    await client.query(
+      `INSERT INTO app_settings (tenant_id, exchange_rate, pay_percentage, default_tax_rate, default_transfer_fee_rate)
+       VALUES ($1, 284.50, 70.00, 5.00, 2.00)
+       ON CONFLICT (tenant_id) DO UPDATE 
+       SET exchange_rate = EXCLUDED.exchange_rate, pay_percentage = EXCLUDED.pay_percentage`,
+      [tenantId]
+    );
+
+    console.log("Successfully seeded database with starter data.");
+  } catch (err) {
+    console.error("Seeding error:", err);
+  } finally {
+    client.release();
+    await pool.end();
   }
-  process.exit(1);
 }
 
-const SUB_ZERO_UUID = "00000000-0000-0000-0000-000000000000";
-
-async function clearTable(table, label) {
-  const { error } = await supabase.from(table).delete().neq("id", SUB_ZERO_UUID);
-  if (error) fail(label, { error });
-  console.log(`[seed] cleared ${table}`);
-}
-
-const accounts = [
-  { name: "Wise Business", currency: "USD" },
-  { name: "HBL", currency: "PKR" },
-];
-
-const outsourcers = [
-  { name: "Ahmed Khan", tax_rate: 5, transfer_fee_rate: 2 },
-  { name: "Fatima Ali", tax_rate: 5, transfer_fee_rate: 2 },
-  { name: "Hassan Malik", tax_rate: 5, transfer_fee_rate: 2 },
-  { name: "Sara Tariq", tax_rate: 5, transfer_fee_rate: 2 },
-];
-
-const projects = [
-  { title: "E-commerce Dashboard", amount_usd: 2400, outsourcer: "Ahmed Khan", status: "completed" },
-  { title: "Mobile App Redesign", amount_usd: 3800, outsourcer: "Fatima Ali", status: "active" },
-  { title: "API Integration", amount_usd: 1500, outsourcer: "Hassan Malik", status: "active" },
-  { title: "Estate Onboarding Flow", amount_usd: 1200, outsourcer: "Sara Tariq", status: "active" },
-  { title: "Inventory Sync Tool", amount_usd: 1800, outsourcer: "Ahmed Khan", status: "cancelled" },
-  { title: "Legacy Chat Cleanup", amount_usd: 2200, outsourcer: "Fatima Ali", status: "completed" },
-];
-
-const transactions = [
-  { type: "income", description: "Client payment — Acme Corp", amount: 5200, currency: "USD", project: "E-commerce Dashboard", account: "Wise Business", transaction_date: "2025-01-15T10:00:00Z" },
-  { type: "expense", description: "Outsourcer — Ahmed Khan", amount: 480, currency: "USD", project: "E-commerce Dashboard", account: "Wise Business", transaction_date: "2025-01-14T10:00:00Z" },
-  { type: "fee", description: "Wise transfer fee", amount: 42.5, currency: "USD", account: "Wise Business", transaction_date: "2025-01-14T12:00:00Z" },
-  { type: "income", description: "Client payment — Beta LLC", amount: 3200, currency: "USD", project: "Mobile App Redesign", account: "Wise Business", transaction_date: "2025-01-10T10:00:00Z" },
-  { type: "expense", description: "Outsourcer — Fatima Ali", amount: 2660, currency: "USD", project: "Mobile App Redesign", account: "Wise Business", transaction_date: "2025-01-08T10:00:00Z" },
-  { type: "income", description: "Client payment — Gamma Inc", amount: 1500, currency: "USD", project: "API Integration", account: "Wise Business", transaction_date: "2025-01-05T10:00:00Z" },
-  { type: "expense", description: "Office utilities", amount: 8500, currency: "PKR", account: "HBL", transaction_date: "2025-01-20T10:00:00Z" },
-  { type: "fee", description: "Payoneer payout fee", amount: 3.5, currency: "USD", account: "Wise Business", transaction_date: "2025-01-03T10:00:00Z" },
-];
-
-async function main() {
-  for (const table of ["transactions", "outsourcer_payments", "projects", "outsourcers", "accounts", "app_settings"]) {
-    await clearTable(table, `clear ${table}`);
-  }
-
-  const { data: accountRows, error: accountsError } = await supabase
-    .from("accounts")
-    .insert(accounts)
-    .select();
-  if (accountsError) fail("insert accounts", { error: accountsError });
-  const accountIdByName = Object.fromEntries(accountRows.map((a) => [a.name, a.id]));
-
-  const { data: outsourcerRows, error: outsourcersError } = await supabase
-    .from("outsourcers")
-    .insert(outsourcers)
-    .select();
-  if (outsourcersError) fail("insert outsourcers", { error: outsourcersError });
-  const outsourcerIdByName = Object.fromEntries(outsourcerRows.map((o) => [o.name, o.id]));
-
-  const { data: projectRows, error: projectsError } = await supabase
-    .from("projects")
-    .insert(
-      projects.map(({ outsourcer, ...project }) => ({
-        ...project,
-        outsourcer_id: outsourcerIdByName[outsourcer],
-      })),
-    )
-    .select();
-  if (projectsError) fail("insert projects", { error: projectsError });
-  const projectIdByTitle = Object.fromEntries(projectRows.map((p) => [p.title, p.id]));
-
-  const { error: transactionsError } = await supabase.from("transactions").insert(
-    transactions.map(({ project, account, ...transaction }) => ({
-      ...transaction,
-      project_id: project ? projectIdByTitle[project] : null,
-      account_id: account ? accountIdByName[account] : null,
-    })),
-  );
-  if (transactionsError) fail("insert transactions", { error: transactionsError });
-
-  const { error: settingsError } = await supabase
-    .from("app_settings")
-    .upsert({
-      id: 1,
-      exchange_rate: 284.5,
-      pay_percentage: 70,
-      default_tax_rate: 5,
-      default_transfer_fee_rate: 2,
-    });
-  if (settingsError) fail("insert app_settings", { error: settingsError });
-
-  console.log(
-    `[seed] done: ${accountRows.length} accounts, ${outsourcerRows.length} outsourcers, ` +
-      `${projectRows.length} projects, ${transactions.length} transactions, 1 app_settings row. ` +
-      "outsourcer_payments left empty (computed per month, not seeded).",
-  );
-}
-
-main();
+seed();

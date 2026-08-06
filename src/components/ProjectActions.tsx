@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { runAction } from "@/lib/action";
 import { deleteProject, updateProjectStatus } from "@/app/actions";
-import type { ProjectStatus } from "@/lib/database.types";
+type ProjectStatus = "active" | "completed" | "cancelled";
 
 export function ProjectActions({
   projectId,

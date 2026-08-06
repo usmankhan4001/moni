@@ -24,7 +24,8 @@ import {
 } from "@/components/ui/dialog";
 import { createTransaction } from "@/app/actions";
 import { runAction } from "@/lib/action";
-import type { Currency, TransactionType } from "@/lib/database.types";
+type Currency = "USD" | "PKR";
+type TransactionType = "income" | "expense" | "fee";
 
 const NONE = "__none__";
 

@@ -1,9 +1,10 @@
 ﻿"use server";
 
 import { revalidatePath } from "next/cache";
-import { createServerSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import { db, schema, isDatabaseConfigured } from "@/db";
+import { eq, and } from "drizzle-orm";
+import { getTenantId } from "@/lib/tenant";
 import { calculateOutsourcerPayment } from "@/lib/payments";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type ActionResult =
   | { ok: true; message: string }
@@ -13,13 +14,7 @@ function err(message: string): ActionResult {
   return { ok: false, message };
 }
 
-async function db(): Promise<SupabaseClient | null> {
-  if (!isSupabaseConfigured()) return null;
-  return (await createServerSupabase()) as unknown as SupabaseClient;
-}
-
-const NOT_CONNECTED =
-  "Database isn't connected yet. Add Supabase credentials to get started.";
+const NOT_CONNECTED = "Database isn't connected yet. Check process.env.DATABASE_URL.";
 
 /* ------------------------------- Accounts ------------------------------ */
 
@@ -27,25 +22,39 @@ export async function createAccount(input: {
   name: string;
   currency: "USD" | "PKR";
 }): Promise<ActionResult> {
-  const supabase = await db();
-  if (!supabase) return err(NOT_CONNECTED);
-  const { error } = await supabase
-    .from("accounts")
-    .insert({ name: input.name.trim(), currency: input.currency });
-  if (error) return err("Could not create account.");
-  revalidatePath("/accounts");
-  revalidatePath("/");
-  return { ok: true, message: "Account created." };
+  if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
+  const tenantId = await getTenantId();
+
+  try {
+    await db.insert(schema.accounts).values({
+      tenantId,
+      name: input.name.trim(),
+      currency: input.currency,
+    });
+    revalidatePath("/accounts");
+    revalidatePath("/");
+    return { ok: true, message: "Account created." };
+  } catch (error) {
+    console.error("createAccount error:", error);
+    return err("Could not create account.");
+  }
 }
 
 export async function deleteAccount(id: string): Promise<ActionResult> {
-  const supabase = await db();
-  if (!supabase) return err(NOT_CONNECTED);
-  const { error } = await supabase.from("accounts").delete().eq("id", id);
-  if (error) return err("Could not delete account.");
-  revalidatePath("/accounts");
-  revalidatePath("/");
-  return { ok: true, message: "Account deleted." };
+  if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
+  const tenantId = await getTenantId();
+
+  try {
+    await db
+      .delete(schema.accounts)
+      .where(and(eq(schema.accounts.id, id), eq(schema.accounts.tenantId, tenantId)));
+    revalidatePath("/accounts");
+    revalidatePath("/");
+    return { ok: true, message: "Account deleted." };
+  } catch (error) {
+    console.error("deleteAccount error:", error);
+    return err("Could not delete account.");
+  }
 }
 
 /* ------------------------------ Outsourcers ---------------------------- */
@@ -55,51 +64,65 @@ export async function createOutsourcer(input: {
   taxRate: number;
   transferFeeRate: number;
 }): Promise<ActionResult> {
-  const supabase = await db();
-  if (!supabase) return err(NOT_CONNECTED);
-  const { error } = await supabase.from("outsourcers").insert({
-    name: input.name.trim(),
-    tax_rate: input.taxRate,
-    transfer_fee_rate: input.transferFeeRate,
-  });
-  if (error)
-    return err(
-      String(error.message).includes("duplicate")
-        ? "That outsourcer already exists."
-        : "Could not add outsourcer.",
-    );
-  revalidatePath("/outsourcers");
-  revalidatePath("/");
-  return { ok: true, message: "Outsourcer added." };
+  if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
+  const tenantId = await getTenantId();
+
+  try {
+    await db.insert(schema.outsourcers).values({
+      tenantId,
+      name: input.name.trim(),
+      taxRate: String(input.taxRate),
+      transferFeeRate: String(input.transferFeeRate),
+    });
+    revalidatePath("/outsourcers");
+    revalidatePath("/");
+    return { ok: true, message: "Outsourcer added." };
+  } catch (error) {
+    console.error("createOutsourcer error:", error);
+    return err("Could not add outsourcer.");
+  }
 }
 
 export async function updateOutsourcer(
   id: string,
-  input: { name?: string; taxRate?: number; transferFeeRate?: number },
+  input: { name?: string; taxRate?: number; transferFeeRate?: number }
 ): Promise<ActionResult> {
-  const supabase = await db();
-  if (!supabase) return err(NOT_CONNECTED);
-  const { error } = await supabase
-    .from("outsourcers")
-    .update({
-      ...(input.name ? { name: input.name.trim() } : {}),
-      ...(input.taxRate != null ? { tax_rate: input.taxRate } : {}),
-      ...(input.transferFeeRate != null ? { transfer_fee_rate: input.transferFeeRate } : {}),
-    })
-    .eq("id", id);
-  if (error) return err("Could not update outsourcer.");
-  revalidatePath("/outsourcers");
-  return { ok: true, message: "Outsourcer updated." };
+  if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
+  const tenantId = await getTenantId();
+
+  try {
+    await db
+      .update(schema.outsourcers)
+      .set({
+        ...(input.name ? { name: input.name.trim() } : {}),
+        ...(input.taxRate != null ? { taxRate: String(input.taxRate) } : {}),
+        ...(input.transferFeeRate != null ? { transferFeeRate: String(input.transferFeeRate) } : {}),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(schema.outsourcers.id, id), eq(schema.outsourcers.tenantId, tenantId)));
+    revalidatePath("/outsourcers");
+    return { ok: true, message: "Outsourcer updated." };
+  } catch (error) {
+    console.error("updateOutsourcer error:", error);
+    return err("Could not update outsourcer.");
+  }
 }
 
 export async function deleteOutsourcer(id: string): Promise<ActionResult> {
-  const supabase = await db();
-  if (!supabase) return err(NOT_CONNECTED);
-  const { error } = await supabase.from("outsourcers").delete().eq("id", id);
-  if (error) return err("Could not delete outsourcer. Remove its projects first.");
-  revalidatePath("/outsourcers");
-  revalidatePath("/");
-  return { ok: true, message: "Outsourcer deleted." };
+  if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
+  const tenantId = await getTenantId();
+
+  try {
+    await db
+      .delete(schema.outsourcers)
+      .where(and(eq(schema.outsourcers.id, id), eq(schema.outsourcers.tenantId, tenantId)));
+    revalidatePath("/outsourcers");
+    revalidatePath("/");
+    return { ok: true, message: "Outsourcer deleted." };
+  } catch (error) {
+    console.error("deleteOutsourcer error:", error);
+    return err("Could not delete outsourcer. Remove its projects first.");
+  }
 }
 
 /* ------------------------------- Projects ------------------------------ */
@@ -113,41 +136,63 @@ export async function createProject(input: {
   const amountUsd = Number(input.amountUsd);
   if (!Number.isFinite(amountUsd) || amountUsd <= 0) return err("Enter a positive project value.");
   if (!input.title.trim()) return err("Give the project a title.");
-  const supabase = await db();
-  if (!supabase) return err(NOT_CONNECTED);
-  const { error } = await supabase.from("projects").insert({
-    title: input.title.trim(),
-    amount_usd: amountUsd,
-    outsourcer_id: input.outsourcerId,
-    status: input.status,
-  });
-  if (error) return err("Could not create project.");
-  revalidatePath("/projects");
-  revalidatePath("/");
-  return { ok: true, message: "Project created." };
+
+  if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
+  const tenantId = await getTenantId();
+
+  try {
+    await db.insert(schema.projects).values({
+      tenantId,
+      title: input.title.trim(),
+      amountUsd: String(amountUsd),
+      outsourcerId: input.outsourcerId,
+      status: input.status,
+    });
+    revalidatePath("/projects");
+    revalidatePath("/");
+    return { ok: true, message: "Project created." };
+  } catch (error) {
+    console.error("createProject error:", error);
+    return err("Could not create project.");
+  }
 }
 
 export async function updateProjectStatus(
   id: string,
-  status: "active" | "completed" | "cancelled",
+  status: "active" | "completed" | "cancelled"
 ): Promise<ActionResult> {
-  const supabase = await db();
-  if (!supabase) return err(NOT_CONNECTED);
-  const { error } = await supabase.from("projects").update({ status }).eq("id", id);
-  if (error) return err("Could not update project.");
-  revalidatePath("/projects");
-  revalidatePath("/");
-  return { ok: true, message: "Project updated." };
+  if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
+  const tenantId = await getTenantId();
+
+  try {
+    await db
+      .update(schema.projects)
+      .set({ status, updatedAt: new Date() })
+      .where(and(eq(schema.projects.id, id), eq(schema.projects.tenantId, tenantId)));
+    revalidatePath("/projects");
+    revalidatePath("/");
+    return { ok: true, message: "Project updated." };
+  } catch (error) {
+    console.error("updateProjectStatus error:", error);
+    return err("Could not update project.");
+  }
 }
 
 export async function deleteProject(id: string): Promise<ActionResult> {
-  const supabase = await db();
-  if (!supabase) return err(NOT_CONNECTED);
-  const { error } = await supabase.from("projects").delete().eq("id", id);
-  if (error) return err("Could not delete project.");
-  revalidatePath("/projects");
-  revalidatePath("/");
-  return { ok: true, message: "Project deleted." };
+  if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
+  const tenantId = await getTenantId();
+
+  try {
+    await db
+      .delete(schema.projects)
+      .where(and(eq(schema.projects.id, id), eq(schema.projects.tenantId, tenantId)));
+    revalidatePath("/projects");
+    revalidatePath("/");
+    return { ok: true, message: "Project deleted." };
+  } catch (error) {
+    console.error("deleteProject error:", error);
+    return err("Could not delete project.");
+  }
 }
 
 /* ----------------------------- Transactions ---------------------------- */
@@ -164,41 +209,53 @@ export async function createTransaction(input: {
   const amount = Number(input.amount);
   if (!Number.isFinite(amount) || amount <= 0) return err("Enter a positive amount.");
   if (!input.description.trim()) return err("Add a short description.");
-  const supabase = await db();
-  if (!supabase) return err(NOT_CONNECTED);
-  const { error } = await supabase.from("transactions").insert({
-    type: input.type,
-    description: input.description.trim(),
-    amount,
-    currency: input.currency,
-    project_id: input.project_id,
-    account_id: input.account_id,
-    transaction_date: input.transaction_date
-      ? new Date(input.transaction_date).toISOString()
-      : new Date().toISOString(),
-  });
-  if (error) return err("Could not create transaction.");
-  revalidatePath("/transactions");
-  revalidatePath("/accounts");
-  revalidatePath("/");
-  return { ok: true, message: "Transaction recorded." };
+
+  if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
+  const tenantId = await getTenantId();
+
+  try {
+    await db.insert(schema.transactions).values({
+      tenantId,
+      type: input.type,
+      description: input.description.trim(),
+      amount: String(amount),
+      currency: input.currency,
+      projectId: input.project_id,
+      accountId: input.account_id,
+      transactionDate: input.transaction_date ? new Date(input.transaction_date) : new Date(),
+    });
+    revalidatePath("/transactions");
+    revalidatePath("/accounts");
+    revalidatePath("/");
+    return { ok: true, message: "Transaction recorded." };
+  } catch (error) {
+    console.error("createTransaction error:", error);
+    return err("Could not create transaction.");
+  }
 }
 
 export async function deleteTransaction(id: string): Promise<ActionResult> {
-  const supabase = await db();
-  if (!supabase) return err(NOT_CONNECTED);
-  const { error } = await supabase.from("transactions").delete().eq("id", id);
-  if (error) return err("Could not delete transaction.");
-  revalidatePath("/transactions");
-  revalidatePath("/accounts");
-  revalidatePath("/");
-  return { ok: true, message: "Transaction deleted." };
+  if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
+  const tenantId = await getTenantId();
+
+  try {
+    await db
+      .delete(schema.transactions)
+      .where(and(eq(schema.transactions.id, id), eq(schema.transactions.tenantId, tenantId)));
+    revalidatePath("/transactions");
+    revalidatePath("/accounts");
+    revalidatePath("/");
+    return { ok: true, message: "Transaction deleted." };
+  } catch (error) {
+    console.error("deleteTransaction error:", error);
+    return err("Could not delete transaction.");
+  }
 }
 
 /* ------------------------- Outsourcer payments ------------------------- */
 
 export async function generateMonthlyPayments(payload: {
-  month: string; // YYYY-MM (due on the 1st)
+  month: string; // YYYY-MM
   exchangeRate: number;
   payPercentage: number;
 }): Promise<ActionResult> {
@@ -208,88 +265,129 @@ export async function generateMonthlyPayments(payload: {
   if (!Number.isFinite(payPercentage) || payPercentage < 0 || payPercentage > 100)
     return err("Pay percentage must be between 0 and 100.");
 
-  const supabase = await db();
-  if (!supabase) return err(NOT_CONNECTED);
+  if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
+  const tenantId = await getTenantId();
 
-  const { data: outsourcers } = await supabase.from("outsourcers").select("*");
-  const outs = (outsourcers ?? []) as Array<{ id: string; tax_rate: number; transfer_fee_rate: number }>;
-  if (outs.length === 0) return err("Add an outsourcer first.");
+  try {
+    const outs = await db
+      .select()
+      .from(schema.outsourcers)
+      .where(eq(schema.outsourcers.tenantId, tenantId));
+    if (outs.length === 0) return err("Add an outsourcer first.");
 
-  const { data: projects } = await supabase
-    .from("projects")
-    .select("title, amount_usd, outsourcer_id")
-    .eq("status", "completed");
-  const projs = (projects ?? []) as Array<{ title: string; amount_usd: number; outsourcer_id: string | null }>;
+    const projs = await db
+      .select()
+      .from(schema.projects)
+      .where(
+        and(
+          eq(schema.projects.tenantId, tenantId),
+          eq(schema.projects.status, "completed")
+        )
+      );
 
-  const byOutsourcer = new Map<string, { title: string; amount: number }[]>();
-  for (const p of projs) {
-    if (!p.outsourcer_id) continue;
-    const list = byOutsourcer.get(p.outsourcer_id) ?? [];
-    list.push({ title: p.title, amount: Number(p.amount_usd) });
-    byOutsourcer.set(p.outsourcer_id, list);
+    const byOutsourcer = new Map<string, { title: string; amount: number }[]>();
+    for (const p of projs) {
+      if (!p.outsourcerId) continue;
+      const list = byOutsourcer.get(p.outsourcerId) ?? [];
+      list.push({ title: p.title, amount: Number(p.amountUsd) });
+      byOutsourcer.set(p.outsourcerId, list);
+    }
+
+    if (byOutsourcer.size === 0)
+      return err("No completed projects are assigned to an outsourcer yet.");
+
+    const dueDate = `${month}-01`;
+    let countGenerated = 0;
+
+    for (const [outsId, projectList] of byOutsourcer) {
+      const os = outs.find((o) => o.id === outsId);
+      const gross = projectList.reduce((sum, p) => sum + p.amount, 0);
+      const taxRate = os ? Number(os.taxRate) : 5;
+      const feeRate = os ? Number(os.transferFeeRate) : 2;
+
+      const calc = calculateOutsourcerPayment(gross, {
+        taxRate,
+        transferFeeRate: feeRate,
+        exchangeRate,
+        payPercentage,
+      });
+
+      await db
+        .insert(schema.outsourcerPayments)
+        .values({
+          tenantId,
+          outsourcerId: outsId,
+          month: dueDate,
+          grossUsd: String(calc.grossUsd),
+          taxRate: String(taxRate),
+          taxUsd: String(calc.taxUsd),
+          transferFeeRate: String(feeRate),
+          transferFeeUsd: String(calc.transferFeeUsd),
+          netUsd: String(calc.netUsd),
+          exchangeRate: String(exchangeRate),
+          netPkr: String(calc.netPkr),
+          status: "pending",
+          dueDate: dueDate,
+        })
+        .onConflictDoUpdate({
+          target: [schema.outsourcerPayments.tenantId, schema.outsourcerPayments.outsourcerId, schema.outsourcerPayments.month],
+          set: {
+            grossUsd: String(calc.grossUsd),
+            taxRate: String(taxRate),
+            taxUsd: String(calc.taxUsd),
+            transferFeeRate: String(feeRate),
+            transferFeeUsd: String(calc.transferFeeUsd),
+            netUsd: String(calc.netUsd),
+            exchangeRate: String(exchangeRate),
+            netPkr: String(calc.netPkr),
+            updatedAt: new Date(),
+          },
+        });
+
+      countGenerated++;
+    }
+
+    revalidatePath("/payments");
+    revalidatePath("/");
+    return { ok: true, message: `Generated ${countGenerated} payment${countGenerated === 1 ? "" : "s"} for ${month}.` };
+  } catch (error) {
+    console.error("generateMonthlyPayments error:", error);
+    return err("Could not generate payments.");
   }
-  if (byOutsourcer.size === 0)
-    return err("No completed projects are assigned to an outsourcer yet.");
-
-  const dueDate = `${month}-01`;
-  const rows = [];
-  for (const [outsId, projectList] of byOutsourcer) {
-    const os = outs.find((o) => o.id === outsId);
-    const gross = projectList.reduce((sum, p) => sum + p.amount, 0);
-    const taxRate = os ? Number(os.tax_rate) : 5;
-    const feeRate = os ? Number(os.transfer_fee_rate) : 2;
-    const calc = calculateOutsourcerPayment(gross, {
-      taxRate,
-      transferFeeRate: feeRate,
-      exchangeRate,
-      payPercentage,
-    });
-    rows.push({
-      outsourcer_id: outsId,
-      month: dueDate,
-      gross_usd: calc.grossUsd,
-      tax_rate: taxRate,
-      tax_usd: calc.taxUsd,
-      transfer_fee_rate: feeRate,
-      transfer_fee_usd: calc.transferFeeUsd,
-      net_usd: calc.netUsd,
-      exchange_rate: exchangeRate,
-      net_pkr: calc.netPkr,
-      status: "pending",
-      due_date: dueDate,
-      paid_at: null,
-    });
-  }
-
-  const { error } = await supabase.from("outsourcer_payments").upsert(rows, {
-    onConflict: "outsourcer_id,month",
-  });
-  if (error) return err("Could not generate payments.");
-  revalidatePath("/payments");
-  revalidatePath("/");
-  return { ok: true, message: `Generated ${rows.length} payment${rows.length === 1 ? "" : "s"} for ${month}.` };
 }
 
 export async function markPaymentPaid(id: string): Promise<ActionResult> {
-  const supabase = await db();
-  if (!supabase) return err(NOT_CONNECTED);
-  const { error } = await supabase
-    .from("outsourcer_payments")
-    .update({ status: "paid", paid_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) return err("Could not mark payment as paid.");
-  revalidatePath("/payments");
-  revalidatePath("/");
-  return { ok: true, message: "Payment marked as paid." };
+  if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
+  const tenantId = await getTenantId();
+
+  try {
+    await db
+      .update(schema.outsourcerPayments)
+      .set({ status: "paid", paidAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(schema.outsourcerPayments.id, id), eq(schema.outsourcerPayments.tenantId, tenantId)));
+    revalidatePath("/payments");
+    revalidatePath("/");
+    return { ok: true, message: "Payment marked as paid." };
+  } catch (error) {
+    console.error("markPaymentPaid error:", error);
+    return err("Could not mark payment as paid.");
+  }
 }
 
 export async function deletePayment(id: string): Promise<ActionResult> {
-  const supabase = await db();
-  if (!supabase) return err(NOT_CONNECTED);
-  const { error } = await supabase.from("outsourcer_payments").delete().eq("id", id);
-  if (error) return err("Could not delete payment.");
-  revalidatePath("/payments");
-  return { ok: true, message: "Payment deleted." };
+  if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
+  const tenantId = await getTenantId();
+
+  try {
+    await db
+      .delete(schema.outsourcerPayments)
+      .where(and(eq(schema.outsourcerPayments.id, id), eq(schema.outsourcerPayments.tenantId, tenantId)));
+    revalidatePath("/payments");
+    return { ok: true, message: "Payment deleted." };
+  } catch (error) {
+    console.error("deletePayment error:", error);
+    return err("Could not delete payment.");
+  }
 }
 
 /* -------------------------------- Settings ------------------------------ */
@@ -301,114 +399,128 @@ export async function updateSettings(input: {
   default_transfer_fee_rate: number;
 }): Promise<ActionResult> {
   const values = {
-    exchange_rate: Number(input.exchange_rate),
-    pay_percentage: Number(input.pay_percentage),
-    default_tax_rate: Number(input.default_tax_rate),
-    default_transfer_fee_rate: Number(input.default_transfer_fee_rate),
+    exchangeRate: String(input.exchange_rate),
+    payPercentage: String(input.pay_percentage),
+    defaultTaxRate: String(input.default_tax_rate),
+    defaultTransferFeeRate: String(input.default_transfer_fee_rate),
   };
-  if (!Number.isFinite(values.exchange_rate) || values.exchange_rate <= 0)
-    return err("Check the exchange rate.");
-  if (values.pay_percentage < 0 || values.pay_percentage > 100)
-    return err("Pay percentage must be between 0 and 100.");
-  const supabase = await db();
-  if (!supabase) return err(NOT_CONNECTED);
-  const { data: existing } = await supabase
-    .from("app_settings")
-    .select("id")
-    .eq("id", 1)
-    .maybeSingle();
-  const { error } = existing
-    ? await supabase.from("app_settings").update(values).eq("id", 1)
-    : await supabase.from("app_settings").insert({ id: 1, ...values });
-  if (error) return err("Could not save settings.");
-  revalidatePath("/");
-  revalidatePath("/payments");
-  return { ok: true, message: "Settings saved." };
+
+  if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
+  const tenantId = await getTenantId();
+
+  try {
+    const existing = await db
+      .select()
+      .from(schema.appSettings)
+      .where(eq(schema.appSettings.tenantId, tenantId))
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db
+        .update(schema.appSettings)
+        .set({ ...values, updatedAt: new Date() })
+        .where(eq(schema.appSettings.tenantId, tenantId));
+    } else {
+      await db.insert(schema.appSettings).values({
+        tenantId,
+        ...values,
+      });
+    }
+
+    revalidatePath("/");
+    revalidatePath("/payments");
+    return { ok: true, message: "Settings saved." };
+  } catch (error) {
+    console.error("updateSettings error:", error);
+    return err("Could not save settings.");
+  }
 }
 
-/* ------------------------------- Demo seed ------------------------------ */
+/* ------------------------------- Demo Seed ------------------------------ */
 
 export async function seedDemoData(): Promise<ActionResult> {
-  const supabase = await db();
-  if (!supabase) return err(NOT_CONNECTED);
+  if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
+  const tenantId = await getTenantId();
 
-  const SUB = "00000000-0000-0000-0000-000000000000";
-  await supabase.from("transactions").delete().neq("id", SUB);
-  await supabase.from("outsourcer_payments").delete().neq("id", SUB);
-  await supabase.from("projects").delete().neq("id", SUB);
-  await supabase.from("outsourcers").delete().neq("id", SUB);
-  await supabase.from("accounts").delete().neq("id", SUB);
+  try {
+    // Clear tenant tables
+    await db.delete(schema.transactions).where(eq(schema.transactions.tenantId, tenantId));
+    await db.delete(schema.outsourcerPayments).where(eq(schema.outsourcerPayments.tenantId, tenantId));
+    await db.delete(schema.projects).where(eq(schema.projects.tenantId, tenantId));
+    await db.delete(schema.outsourcers).where(eq(schema.outsourcers.tenantId, tenantId));
+    await db.delete(schema.accounts).where(eq(schema.accounts.tenantId, tenantId));
 
-  const { data: accounts } = await supabase
-    .from("accounts")
-    .insert([
-      { name: "Wise Business", currency: "USD" },
-      { name: "HBL Current", currency: "PKR" },
-    ])
-    .select("id,name");
-  const accountByName = new Map((accounts ?? []).map((a) => [a.name as string, a.id as string]));
+    // Accounts
+    const accs = await db
+      .insert(schema.accounts)
+      .values([
+        { tenantId, name: "Wise Business", currency: "USD" },
+        { tenantId, name: "HBL Current", currency: "PKR" },
+      ])
+      .returning();
 
-  const { data: outs } = await supabase
-    .from("outsourcers")
-    .insert([
-      { name: "Ahmed Khan", tax_rate: 5, transfer_fee_rate: 2 },
-      { name: "Fatima Ali", tax_rate: 5, transfer_fee_rate: 2 },
-      { name: "Hassan Malik", tax_rate: 5, transfer_fee_rate: 2 },
-    ])
-    .select("id,name");
-  const outsByName = new Map((outs ?? []).map((o) => [o.name as string, o.id as string]));
+    const accountByName = new Map(accs.map((a) => [a.name, a.id]));
 
-  const { data: projects } = await supabase
-    .from("projects")
-    .insert([
-      { title: "E-commerce Dashboard", amount_usd: 2400, outsourcer_id: outsByName.get("Ahmed Khan") ?? null, status: "completed" },
-      { title: "Mobile App Redesign", amount_usd: 3800, outsourcer_id: outsByName.get("Fatima Ali") ?? null, status: "active" },
-      { title: "API Integration", amount_usd: 1500, outsourcer_id: outsByName.get("Hassan Malik") ?? null, status: "active" },
-      { title: "Brand Identity", amount_usd: 1800, outsourcer_id: outsByName.get("Ahmed Khan") ?? null, status: "completed" },
-    ])
-    .select("id,title");
+    // Outsourcers
+    const outs = await db
+      .insert(schema.outsourcers)
+      .values([
+        { tenantId, name: "Ahmed Khan", taxRate: "5.00", transferFeeRate: "2.00" },
+        { tenantId, name: "Fatima Ali", taxRate: "5.00", transferFeeRate: "2.00" },
+        { tenantId, name: "Hassan Malik", taxRate: "5.00", transferFeeRate: "2.00" },
+      ])
+      .returning();
 
-  await supabase.from("transactions").insert([
-    {
-      type: "income",
-      description: "Client payment — Acme Corp",
-      amount: 5200,
-      currency: "USD",
-      account_id: accountByName.get("Wise Business") ?? null,
-      project_id: null,
-      transaction_date: new Date().toISOString(),
-    },
-    {
-      type: "expense",
-      description: "Cloud hosting — AWS",
-      amount: 95,
-      currency: "USD",
-      account_id: accountByName.get("Wise Business") ?? null,
-      project_id: null,
-      transaction_date: new Date().toISOString(),
-    },
-  ]);
+    const outsByName = new Map(outs.map((o) => [o.name, o.id]));
 
-  await supabase
-    .from("app_settings")
-    .upsert(
+    // Projects
+    await db.insert(schema.projects).values([
+      { tenantId, title: "E-commerce Dashboard", amountUsd: "2400.00", outsourcerId: outsByName.get("Ahmed Khan"), status: "completed" },
+      { tenantId, title: "Mobile App Redesign", amountUsd: "3800.00", outsourcerId: outsByName.get("Fatima Ali"), status: "active" },
+      { tenantId, title: "API Integration", amountUsd: "1500.00", outsourcerId: outsByName.get("Hassan Malik"), status: "active" },
+      { tenantId, title: "Brand Identity", amountUsd: "1800.00", outsourcerId: outsByName.get("Ahmed Khan"), status: "completed" },
+    ]);
+
+    // Transactions
+    await db.insert(schema.transactions).values([
       {
-        id: 1,
-        exchange_rate: 284.5,
-        pay_percentage: 70,
-        default_tax_rate: 5,
-        default_transfer_fee_rate: 2,
+        tenantId,
+        type: "income",
+        description: "Client payment — Acme Corp",
+        amount: "5200.00",
+        currency: "USD",
+        accountId: accountByName.get("Wise Business"),
+        transactionDate: new Date(),
       },
-      { onConflict: "id" },
-    );
+      {
+        tenantId,
+        type: "expense",
+        description: "Cloud hosting — AWS",
+        amount: "95.00",
+        currency: "USD",
+        accountId: accountByName.get("Wise Business"),
+        transactionDate: new Date(),
+      },
+    ]);
 
-  revalidatePath("/");
-  revalidatePath("/projects");
-  revalidatePath("/transactions");
-  revalidatePath("/accounts");
-  revalidatePath("/outsourcers");
-  revalidatePath("/payments");
-  void projects;
+    // Settings
+    await updateSettings({
+      exchange_rate: 284.5,
+      pay_percentage: 70,
+      default_tax_rate: 5,
+      default_transfer_fee_rate: 2,
+    });
 
-  return { ok: true, message: "Demo data loaded. Ready to use." };
+    revalidatePath("/");
+    revalidatePath("/projects");
+    revalidatePath("/transactions");
+    revalidatePath("/accounts");
+    revalidatePath("/outsourcers");
+    revalidatePath("/payments");
+
+    return { ok: true, message: "Demo data loaded. Ready to use." };
+  } catch (error) {
+    console.error("seedDemoData error:", error);
+    return err("Could not seed demo data.");
+  }
 }

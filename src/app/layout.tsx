@@ -27,8 +27,8 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hisaab — Finance Tracker",
-  description: "Track projects, payments, and outsourcer dues across USD and PKR",
+  title: "Moni — Your Freelance Project Finance Manager",
+  description: "Track projects, payments, income, expenses, and outsourcer dues across USD and PKR",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/icons/icon-192.png",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Hisaab",
+    title: "Moni",
   },
 };
 

@@ -2,6 +2,7 @@ import type { PaymentWithOutsourcer } from "@/lib/data";
 import { formatDate, formatPKR, formatUSD } from "@/lib/format";
 import { monthLabel } from "@/lib/date";
 import { PaymentRowActions } from "@/components/payments/PaymentRowActions";
+import { PaymentVoucherDialog } from "@/components/payments/PaymentVoucherDialog";
 
 function BreakdownCell({
   label,
@@ -28,7 +29,7 @@ export function PaymentCard({ payment }: { payment: PaymentWithOutsourcer }) {
   const name = payment.outsourcer_name ?? "Unknown outsourcer";
 
   return (
-    <div className="bg-white border border-ledger-dark/50 rounded-sm p-5">
+    <div className="bg-white border border-ledger-dark/50 rounded-sm p-5 shadow-xs">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
@@ -87,9 +88,7 @@ export function PaymentCard({ payment }: { payment: PaymentWithOutsourcer }) {
       </div>
 
       <div className="flex items-center justify-between mt-4 pt-4 border-t border-ledger/50">
-        <p className="text-[10px] uppercase tracking-widest text-slate-light">
-          Gross {formatUSD(payment.gross_usd)}
-        </p>
+        <PaymentVoucherDialog payment={payment} />
         <PaymentRowActions id={payment.id} status={payment.status} name={name} />
       </div>
     </div>
