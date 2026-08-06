@@ -10,20 +10,24 @@ interface DateFormatOptions {
 }
 
 export function formatUSD(amount: number, options: MoneyFormatOptions = {}): string {
+  const min = options.minimumFractionDigits ?? 2;
+  const max = options.maximumFractionDigits ?? 2;
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    minimumFractionDigits: options.minimumFractionDigits ?? 2,
-    maximumFractionDigits: options.maximumFractionDigits ?? 2,
+    minimumFractionDigits: Math.min(min, max),
+    maximumFractionDigits: Math.max(min, max),
   }).format(amount);
 }
 
 export function formatPKR(amount: number, options: MoneyFormatOptions = {}): string {
+  const min = options.minimumFractionDigits ?? 0;
+  const max = options.maximumFractionDigits ?? 0;
   return new Intl.NumberFormat("en-PK", {
     style: "currency",
     currency: "PKR",
-    minimumFractionDigits: options.minimumFractionDigits ?? 0,
-    maximumFractionDigits: options.maximumFractionDigits ?? 0,
+    minimumFractionDigits: Math.min(min, max),
+    maximumFractionDigits: Math.max(min, max),
   }).format(amount);
 }
 
