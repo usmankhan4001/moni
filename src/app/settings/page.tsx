@@ -2,11 +2,10 @@ import { getSettings, isReady } from "@/lib/data";
 import type { AppSettings } from "@/lib/data";
 import { formatPKR, formatUSD } from "@/lib/format";
 import { calculateOutsourcerPayment } from "@/lib/payments";
-import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageShell } from "@/components/PageShell";
 import { SetupRequiredBanner } from "@/components/EmptyState";
 import { SettingsForm } from "@/components/settings-form";
-import { SeedButton } from "@/components/SeedButton";
 import { BackupManager } from "@/components/BackupManager";
 import { getBackupHistory } from "@/lib/r2";
 
@@ -83,22 +82,6 @@ export default async function SettingsPage() {
                 — that&apos;s the {settings.pay_percentage}% you pass along.
               </p>
             </div>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Demo data</CardTitle>
-              <CardDescription>
-                Replace the ledger with a small starter set of accounts, outsourcers,
-                projects, and transactions.
-              </CardDescription>
-            </CardHeader>
-            <CardFooter className="justify-between">
-              <p className="text-sm text-muted-foreground">
-                Loading demo data overwrites current records.
-              </p>
-              <SeedButton />
-            </CardFooter>
           </Card>
         </div>
       )}

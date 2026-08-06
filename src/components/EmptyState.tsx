@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { SeedButton } from "@/components/SeedButton";
 
 export function EmptyState({
   title,
@@ -31,28 +30,18 @@ export function EmptyState({
 export function SetupRequiredBanner() {
   return (
     <div className="border border-amber/40 bg-amber/10 rounded-md p-6">
-      <h2 className="font-display text-xl text-foreground">Connect your database</h2>
+      <h2 className="font-display text-xl text-foreground">Connect PostgreSQL Database</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Hisaab needs Supabase credentials before it can store anything. Add
+        Moni needs a valid PostgreSQL database connection. Set
         <code className="mx-1 rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
-          NEXT_PUBLIC_SUPABASE_URL
+          DATABASE_URL
         </code>
-        and
+        in your environment variables, then run
         <code className="mx-1 rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
-          NEXT_PUBLIC_SUPABASE_ANON_KEY
+          npx drizzle-kit push
         </code>
-        to your environment, then apply{" "}
-        <code className="mx-1 rounded bg-muted px-1.5 py-0.5 font-mono text-xs">db/schema.sql</code>.
+        to initialize the schema.
       </p>
-      <div className="mt-4">
-        <EmptyState
-          title="Ready when you are"
-          description="Once connected, you can load a small starter set of data to explore."
-        />
-        <div className="mt-3">
-          <SeedButton label="Load demo data" />
-        </div>
-      </div>
     </div>
   );
 }
