@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db, schema, isDatabaseConfigured } from "@/db";
-import { getDeploymentMode } from "@/lib/tenant";
+import { getDeploymentMode, ensureMigrations } from "@/lib/tenant";
 import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
@@ -51,6 +51,15 @@ export async function signUp(input: {
     return err("Sign-up is only available in multi-tenant deployments.");
   }
   if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
+
+  // On a brand-new multi_tenant database this is the ONLY thing that can
+  // create the schema. ensureMigrations() otherwise runs solely from
+  // getTenantId(), which requires a verified session — and you cannot obtain
+  // a session without first signing up, which needs these very tables. That
+  // circular dependency left a fresh deployment permanently unable to
+  // migrate, with signup failing on `relation "users" does not exist`.
+  // /api/health does not catch it because it only issues `select 1`.
+  await ensureMigrations();
 
   const ip = await getClientIp();
   const limited = rateLimit(`signup:${ip}`, 5, 60 * 60 * 1000);
@@ -141,6 +150,10 @@ export async function signIn(input: {
     return err("Sign-in is only available in multi-tenant deployments.");
   }
   if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
+
+  // Same reasoning as signUp: a fresh deployment whose first visitor lands on
+  // /login rather than /signup would otherwise query tables that don't exist.
+  await ensureMigrations();
 
   const email = input.email.trim().toLowerCase();
   const password = input.password;
