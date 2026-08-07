@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/layout/Sidebar";
+import { getSettings } from "@/lib/data";
 
-export function PageShell({
+export async function PageShell({
   eyebrow,
   title,
   actions,
@@ -11,9 +12,10 @@ export function PageShell({
   actions?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const settings = await getSettings();
   return (
     <div className="min-h-[100dvh] flex flex-col lg:flex-row bg-background">
-      <Sidebar />
+      <Sidebar exchangeRate={settings.exchange_rate} />
       <main className="flex-1 lg:ml-64 w-full flex flex-col pt-16 lg:pt-0 pb-[80px] lg:pb-0">
         <header className="glass-header sticky top-0 z-40">
           <div className="px-5 lg:px-10 py-5 lg:py-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

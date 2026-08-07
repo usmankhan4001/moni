@@ -213,6 +213,19 @@ export async function createTransaction(input: {
   if (!isDatabaseConfigured() || !db) return err(NOT_CONNECTED);
   const tenantId = await getTenantId();
 
+  if (input.account_id) {
+    const [account] = await db
+      .select({ currency: schema.accounts.currency })
+      .from(schema.accounts)
+      .where(and(eq(schema.accounts.id, input.account_id), eq(schema.accounts.tenantId, tenantId)))
+      .limit(1);
+    if (account && account.currency !== input.currency) {
+      return err(
+        `This account is in ${account.currency}; choose a matching currency or a different account.`
+      );
+    }
+  }
+
   try {
     await db.insert(schema.transactions).values({
       tenantId,

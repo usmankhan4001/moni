@@ -10,6 +10,7 @@ import {
   Users2,
   Wallet2,
   Settings2,
+  type LucideIcon,
 } from "lucide-react";
 import { MobileQuickActionSheet } from "@/components/layout/MobileQuickActionSheet";
 
@@ -23,7 +24,7 @@ const navItems = [
   { href: "/settings", label: "Settings", icon: Settings2 },
 ];
 
-export function Sidebar() {
+export function Sidebar({ exchangeRate }: { exchangeRate: number }) {
   const pathname = usePathname();
 
   return (
@@ -74,13 +75,13 @@ export function Sidebar() {
             Live FX Rate
           </p>
           <p className="font-mono text-sm text-primary font-semibold tabular-nums">
-            USD 1 = PKR 284.50
+            {`USD 1 = PKR ${exchangeRate.toFixed(2)}`}
           </p>
         </div>
       </aside>
 
       {/* Mobile Top Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 glass-header px-4 py-3 flex items-center justify-between">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 glass-header px-4 py-3 flex items-center justify-between pt-[env(safe-area-inset-top)]">
         <Link href="/" className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground font-display text-xl font-bold flex items-center justify-center shadow-sm">
             M
@@ -88,7 +89,7 @@ export function Sidebar() {
           <span className="font-display text-xl font-bold tracking-tight text-foreground">Moni</span>
         </Link>
         <div className="flex items-center gap-3 bg-muted px-3 py-1.5 rounded-full border border-border">
-          <span className="font-mono text-[10px] font-semibold text-primary tabular-nums">USD/PKR 284.50</span>
+          <span className="font-mono text-[10px] font-semibold text-primary tabular-nums">{`USD/PKR ${exchangeRate.toFixed(2)}`}</span>
         </div>
       </header>
 
@@ -98,23 +99,6 @@ export function Sidebar() {
         aria-label="Mobile Navigation"
       >
         <div className="flex justify-around items-center px-1">
-          {navItems.map((item, idx) => {
-            // Only show top 5 items on mobile dock to avoid crowding. Put Settings behind a menu or hide.
-            // Let's show: Dashboard, Projects, Add(FAB), Transactions, Outsourcers
-            if (idx > 4 && item.label !== "Settings") return null; 
-            if (idx === 2) {
-              return (
-                <div key="fab-slot" className="flex items-center justify-center w-[20%]">
-                  <MobileQuickActionSheet />
-                </div>
-              );
-            }
-            
-            // Adjust the actual links mapping based on the visual layout
-            // Let's explicitly define the mobile nav array for clarity.
-            return null;
-          })}
-          
           <MobileNavItem href="/" label="Home" icon={LayoutDashboard} active={pathname === "/"} />
           <MobileNavItem href="/projects" label="Projects" icon={FolderKanban} active={pathname === "/projects"} />
           
@@ -130,7 +114,7 @@ export function Sidebar() {
   );
 }
 
-function MobileNavItem({ href, label, icon: Icon, active }: { href: string, label: string, icon: any, active: boolean }) {
+function MobileNavItem({ href, label, icon: Icon, active }: { href: string, label: string, icon: LucideIcon, active: boolean }) {
   return (
     <Link
       href={href}

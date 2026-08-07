@@ -61,6 +61,8 @@ export function NewTransactionDialog({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    // Intentional: computed client-side only so server/client don't disagree on "today".
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDate(todayISO());
   }, []);
 

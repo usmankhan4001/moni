@@ -78,8 +78,8 @@ export function TransactionsTable({
                 const chip = typeChip[transaction.type];
                 const amount =
                   transaction.currency === "USD"
-                    ? formatUSD(transaction.amount)
-                    : formatPKR(transaction.amount);
+                    ? formatUSD(Math.abs(transaction.amount))
+                    : formatPKR(Math.abs(transaction.amount));
                 const isIncome = transaction.type === "income";
                 return (
                   <TableRow key={transaction.id}>

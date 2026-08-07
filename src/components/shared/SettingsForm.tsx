@@ -103,6 +103,7 @@ export function SettingsForm({ settings, onDone }: SettingsFormProps) {
             label="Exchange rate"
             hint="USD → PKR, e.g. 284.5"
             value={exchangeRate}
+            max={10000}
             onChange={setExchangeRate}
           />
           <NumberField
@@ -110,6 +111,7 @@ export function SettingsForm({ settings, onDone }: SettingsFormProps) {
             label="Pay percentage (%)"
             hint="Share of net you pay the outsourcer"
             value={payPercentage}
+            max={100}
             onChange={setPayPercentage}
           />
           <NumberField
@@ -117,6 +119,7 @@ export function SettingsForm({ settings, onDone }: SettingsFormProps) {
             label="Default tax rate (%)"
             hint="Applied to gross for new outsourcers"
             value={defaultTaxRate}
+            max={100}
             onChange={setDefaultTaxRate}
           />
           <NumberField
@@ -124,6 +127,7 @@ export function SettingsForm({ settings, onDone }: SettingsFormProps) {
             label="Default transfer fee (%)"
             hint="Applied to net for new outsourcers"
             value={defaultTransferFeeRate}
+            max={100}
             onChange={setDefaultTransferFeeRate}
           />
         </CardContent>

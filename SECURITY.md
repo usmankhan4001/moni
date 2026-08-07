@@ -2,10 +2,12 @@
 
 ## Supported Versions
 
+Moni does not yet maintain a versioned release/support matrix. Only the latest commit on the default branch (`main`) is supported — please update to the latest commit before reporting an issue.
+
 | Version | Supported          |
 | ------- | ------------------ |
-| V1.1    | :white_check_mark: |
-| V1.0    | :x:                |
+| `main` (latest commit) | :white_check_mark: |
+| Older commits / forks  | :x:                |
 
 ## Reporting a Vulnerability
 

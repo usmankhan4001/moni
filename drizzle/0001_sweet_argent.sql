@@ -1,0 +1,1 @@
+ALTER TABLE "backups" ADD COLUMN "encrypted" boolean DEFAULT true NOT NULL;

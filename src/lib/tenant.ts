@@ -1,7 +1,7 @@
-import { cookies, headers } from "next/headers";
 import { db, schema, isDatabaseConfigured } from "@/db";
 import { runMigrations } from "@/db/migrate";
 import { eq } from "drizzle-orm";
+import { getSession } from "@/lib/auth";
 
 export const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 export const DEFAULT_TENANT_SLUG = "default";
@@ -65,7 +65,18 @@ export async function ensureDefaultTenant(): Promise<string> {
 }
 
 /**
- * Resolves active tenant ID based on DEPLOYMENT_MODE, request headers, cookies, or subdomain.
+ * Resolves the active tenant ID for the current request.
+ *
+ * single_user mode: always the single default workspace — zero friction,
+ * unchanged from before.
+ *
+ * multi_tenant mode: derived EXCLUSIVELY from a cryptographically verified
+ * session (see src/lib/auth.ts#getSession). There is intentionally no
+ * fallback to a client-supplied cookie, header, or subdomain here — that
+ * was the vulnerability (anyone could send `x-tenant-id` or a
+ * `moni_tenant_id` cookie and read/write any tenant's data with zero
+ * verification). If there's no valid session, this throws rather than
+ * silently falling back to a default tenant.
  */
 export async function getTenantId(): Promise<string> {
   const mode = getDeploymentMode();
@@ -76,33 +87,7 @@ export async function getTenantId(): Promise<string> {
 
   await ensureMigrations();
 
-  // Multi-tenant mode: Check request headers or cookies
-  try {
-    const cookieStore = await cookies();
-    const tenantCookie = cookieStore.get("moni_tenant_id")?.value;
-    if (tenantCookie) return tenantCookie;
-
-    const headerList = await headers();
-    const headerTenant = headerList.get("x-tenant-id");
-    if (headerTenant) return headerTenant;
-
-    // Subdomain resolution from host (e.g. acme.yourdomain.com)
-    const host = headerList.get("host") || "";
-    const parts = host.split(".");
-    if (parts.length >= 3 && !parts[0].startsWith("localhost")) {
-      const subdomain = parts[0];
-      if (db) {
-        const found = await db
-          .select()
-          .from(schema.tenants)
-          .where(eq(schema.tenants.slug, subdomain))
-          .limit(1);
-        if (found.length > 0) return found[0].id;
-      }
-    }
-  } catch {
-    // In contexts where cookies/headers are unavailable (e.g. static generation)
-  }
-
-  return ensureDefaultTenant();
+  const session = await getSession();
+  if (!session) throw new Error("Not authenticated.");
+  return session.tenantId;
 }

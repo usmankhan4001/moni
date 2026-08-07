@@ -301,7 +301,10 @@ export const getProjectsByStatus = async (
 /* ------------------------------ Transactions ------------------------------ */
 
 export const getTransactions = cache(
-  async (month?: string | null): Promise<TransactionWithRelations[]> => {
+  async (
+    month?: string | null,
+    opts?: { limit?: number; offset?: number }
+  ): Promise<TransactionWithRelations[]> => {
     if (!isDatabaseConfigured() || !db) return [];
     const tenantId = await getTenantId();
 
@@ -313,7 +316,7 @@ export const getTransactions = cache(
         conditions.push(lt(schema.transactions.transactionDate, new Date(range.end)));
       }
 
-      const rows = await db
+      let query = db
         .select({
           txn: schema.transactions,
           accountName: schema.accounts.name,
@@ -323,7 +326,13 @@ export const getTransactions = cache(
         .leftJoin(schema.accounts, eq(schema.transactions.accountId, schema.accounts.id))
         .leftJoin(schema.projects, eq(schema.transactions.projectId, schema.projects.id))
         .where(and(...conditions))
-        .orderBy(desc(schema.transactions.transactionDate));
+        .orderBy(desc(schema.transactions.transactionDate))
+        .$dynamic();
+
+      if (opts?.limit !== undefined) query = query.limit(opts.limit);
+      if (opts?.offset !== undefined) query = query.offset(opts.offset);
+
+      const rows = await query;
 
       return rows.map(({ txn, accountName, projectTitle }) => ({
         id: txn.id,
@@ -348,10 +357,54 @@ export const getTransactions = cache(
 
 export const getRecentTransactions = cache(
   async (limit = 5): Promise<TransactionWithRelations[]> => {
-    const all = await getTransactions();
+    const all = await getTransactions(null, { limit });
     return all.slice(0, limit);
   }
 );
+
+export interface TransactionTotals {
+  income_usd: number;
+  expense_usd: number;
+  fee_usd: number;
+}
+
+// Ledger-wide totals via SQL aggregation instead of fetching every row into JS.
+export const getTransactionTotals = cache(async (): Promise<TransactionTotals> => {
+  const zero = { income_usd: 0, expense_usd: 0, fee_usd: 0 };
+  if (!isDatabaseConfigured() || !db) return zero;
+  const tenantId = await getTenantId();
+
+  try {
+    const [rows, settings] = await Promise.all([
+      db
+        .select({
+          type: schema.transactions.type,
+          currency: schema.transactions.currency,
+          total: sum(schema.transactions.amount),
+        })
+        .from(schema.transactions)
+        .where(eq(schema.transactions.tenantId, tenantId))
+        .groupBy(schema.transactions.type, schema.transactions.currency),
+      getSettings(),
+    ]);
+
+    const rate = settings.exchange_rate;
+    let income_usd = 0;
+    let expense_usd = 0;
+    let fee_usd = 0;
+    for (const r of rows) {
+      const amt = Number(r.total) || 0;
+      const usd = r.currency === "USD" ? amt : amt / rate;
+      if (r.type === "income") income_usd += usd;
+      else if (r.type === "expense") expense_usd += usd;
+      else fee_usd += usd;
+    }
+    return { income_usd, expense_usd, fee_usd };
+  } catch (err) {
+    console.error("Error getting transaction totals:", err);
+    return zero;
+  }
+});
 
 /* -------------------------------- Payments -------------------------------- */
 

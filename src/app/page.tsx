@@ -33,7 +33,7 @@ function toUsd(amount: number, currency: "USD" | "PKR", exchangeRate: number): n
 
 function ActivityRow({ txn }: { txn: TransactionWithRelations }) {
   const config = typeConfig[txn.type];
-  const amount = txn.currency === "USD" ? formatUSD(txn.amount) : formatPKR(txn.amount);
+  const amount = txn.currency === "USD" ? formatUSD(Math.abs(txn.amount)) : formatPKR(Math.abs(txn.amount));
   const meta = txn.account_name ?? txn.project_title;
   const date = new Date(txn.transaction_date).toLocaleDateString("en-US", {
     month: "short",
@@ -81,7 +81,7 @@ function StatsSkeleton() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="bg-white border border-border/60 rounded-xl p-5 shadow-xs">
+        <div key={i} className="bg-card border border-border/60 rounded-xl p-5 shadow-xs">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="mt-3 h-7 w-32" />
           <Skeleton className="mt-2 h-3 w-20" />
@@ -137,7 +137,7 @@ async function StatsSection() {
         sublabel={
           pendingPayments.length === 0
             ? "Nothing due"
-            : `${pluralize(pendingPayments.length, "payment")} to contractors`
+            : `${pluralize(pendingPayments.length, "payment")} to outsourcers`
         }
         accent="amber"
       />
@@ -213,7 +213,7 @@ async function ChartsSection() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-      <div className="lg:col-span-2 bg-white border border-border/80 rounded-xl p-5 shadow-xs">
+      <div className="lg:col-span-2 bg-card border border-border/80 rounded-xl p-5 shadow-xs">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="font-display text-lg text-foreground">Cash Flow Trend</h3>
@@ -225,7 +225,7 @@ async function ChartsSection() {
         </ClientOnly>
       </div>
 
-      <div className="bg-white border border-border/80 rounded-xl p-5 shadow-xs">
+      <div className="bg-card border border-border/80 rounded-xl p-5 shadow-xs">
         <div className="mb-4">
           <h3 className="font-display text-lg text-foreground">Income by Account</h3>
           <p className="text-xs text-muted-foreground">Distribution across accounts</p>
@@ -236,9 +236,9 @@ async function ChartsSection() {
       </div>
 
       {outsourcerPayoutData.length > 0 && (
-        <div className="lg:col-span-3 bg-white border border-border/80 rounded-xl p-5 shadow-xs">
+        <div className="lg:col-span-3 bg-card border border-border/80 rounded-xl p-5 shadow-xs">
           <div className="mb-4">
-            <h3 className="font-display text-lg text-foreground">Pending Contractor Dues (PKR)</h3>
+            <h3 className="font-display text-lg text-foreground">Pending Outsourcer Dues (PKR)</h3>
             <p className="text-xs text-muted-foreground">Outstanding monthly payouts per outsourcer</p>
           </div>
           <ClientOnly fallback={<div className="h-64 animate-pulse bg-muted rounded-lg" />}>
@@ -263,7 +263,7 @@ async function RecentProjectsSection() {
   }
 
   return (
-    <div className="bg-white border border-border/80 rounded-xl divide-y divide-border/60 overflow-hidden shadow-xs">
+    <div className="bg-card border border-border/80 rounded-xl divide-y divide-border/60 overflow-hidden shadow-xs">
       {projects.slice(0, 5).map((p) => (
         <div key={p.id} className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-black/5 transition-colors">
           <div className="min-w-0">
@@ -299,7 +299,7 @@ async function RecentActivitySection() {
   }
 
   return (
-    <div className="bg-white border border-border/80 rounded-xl divide-y divide-border/60 overflow-hidden shadow-xs">
+    <div className="bg-card border border-border/80 rounded-xl divide-y divide-border/60 overflow-hidden shadow-xs">
       {recent.map((txn) => (
         <ActivityRow key={txn.id} txn={txn} />
       ))}
@@ -367,7 +367,7 @@ export default function DashboardPage() {
         <StatsSection />
       </Suspense>
 
-      <Suspense fallback={<div className="h-64 bg-white rounded-xl animate-pulse mb-8" />}>
+      <Suspense fallback={<div className="h-64 bg-card rounded-xl animate-pulse mb-8" />}>
         <ChartsSection />
       </Suspense>
 
@@ -382,7 +382,7 @@ export default function DashboardPage() {
               View all
             </a>
           </div>
-          <Suspense fallback={<div className="h-32 bg-white rounded-xl animate-pulse" />}>
+          <Suspense fallback={<div className="h-32 bg-card rounded-xl animate-pulse" />}>
             <RecentProjectsSection />
           </Suspense>
         </div>
@@ -397,7 +397,7 @@ export default function DashboardPage() {
               View all
             </a>
           </div>
-          <Suspense fallback={<div className="h-32 bg-white rounded-xl animate-pulse" />}>
+          <Suspense fallback={<div className="h-32 bg-card rounded-xl animate-pulse" />}>
             <RecentActivitySection />
           </Suspense>
           <Suspense fallback={null}>

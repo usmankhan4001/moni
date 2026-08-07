@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PageShell } from "@/components/layout/PageShell";
 import { EmptyState, SetupRequiredBanner } from "@/components/shared/EmptyState";
 import { StatCard } from "@/components/shared/StatCard";
@@ -6,21 +7,32 @@ import { TransactionsTable } from "@/components/transactions/TransactionsTable";
 import {
   getAccounts,
   getProjects,
-  getSettings,
   getTransactions,
+  getTransactionTotals,
   isReady,
 } from "@/lib/data";
 import { formatUSD } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function TransactionsPage() {
+const PAGE_SIZE = 100;
+
+export default async function TransactionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const configured = isReady();
-  const [transactions, projects, accounts, settings] = await Promise.all([
-    getTransactions(),
+  const params = await searchParams;
+  const pageParam = Array.isArray(params.page) ? params.page[0] : params.page;
+  const page = Math.max(1, Number(pageParam) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
+
+  const [transactions, projects, accounts, totals] = await Promise.all([
+    getTransactions(null, { limit: PAGE_SIZE, offset }),
     getProjects(),
     getAccounts(),
-    getSettings(),
+    getTransactionTotals(),
   ]);
 
   if (!configured) {
@@ -31,21 +43,8 @@ export default async function TransactionsPage() {
     );
   }
 
-  const rate = settings.exchange_rate;
-  let incomeUsd = 0;
-  let expenseUsd = 0;
-  let feeUsd = 0;
-  for (const transaction of transactions) {
-    const usd =
-      transaction.currency === "USD"
-        ? transaction.amount
-        : transaction.amount / rate;
-    if (transaction.type === "income") incomeUsd += usd;
-    else if (transaction.type === "expense") expenseUsd += usd;
-    else feeUsd += usd;
-  }
-
-  const rateNote = `PKR converted at Rs ${rate.toFixed(2)}/USD`;
+  const { income_usd: incomeUsd, expense_usd: expenseUsd, fee_usd: feeUsd } = totals;
+  const rateNote = "Ledger-wide, all time";
 
   return (
     <PageShell
@@ -77,11 +76,44 @@ export default async function TransactionsPage() {
       {/* Ledger */}
       {transactions.length === 0 ? (
         <EmptyState
-          title="No transactions yet"
-          description="Record income, expenses, and fees to keep the ledger in order."
+          title={page === 1 ? "No transactions yet" : "No more transactions"}
+          description={
+            page === 1
+              ? "Record income, expenses, and fees to keep the ledger in order."
+              : "You've reached the end of the ledger."
+          }
         />
       ) : (
-        <TransactionsTable transactions={transactions} />
+        <>
+          <TransactionsTable transactions={transactions} />
+          <div className="flex items-center justify-between mt-4">
+            {page > 1 ? (
+              <Link
+                href={`/transactions?page=${page - 1}`}
+                className="text-xs uppercase tracking-widest text-primary hover:text-primary transition-colors font-semibold"
+              >
+                ← Prev
+              </Link>
+            ) : (
+              <span className="text-xs uppercase tracking-widest text-muted-foreground/50 font-semibold">
+                ← Prev
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground">Page {page}</span>
+            {transactions.length === PAGE_SIZE ? (
+              <Link
+                href={`/transactions?page=${page + 1}`}
+                className="text-xs uppercase tracking-widest text-primary hover:text-primary transition-colors font-semibold"
+              >
+                Next →
+              </Link>
+            ) : (
+              <span className="text-xs uppercase tracking-widest text-muted-foreground/50 font-semibold">
+                Next →
+              </span>
+            )}
+          </div>
+        </>
       )}
     </PageShell>
   );

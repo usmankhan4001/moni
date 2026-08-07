@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -43,7 +44,14 @@ export function ProjectForm({
 
   const handleSubmit = async () => {
     const amountUsd = Number(amount);
-    if (!title.trim() || !Number.isFinite(amountUsd) || amountUsd <= 0) return;
+    if (!title.trim()) {
+      toast.error("Give the project a title.");
+      return;
+    }
+    if (!Number.isFinite(amountUsd) || amountUsd <= 0) {
+      toast.error("Enter a positive project value.");
+      return;
+    }
     setPending(true);
     const result = await runAction(createProject, {
       title,
@@ -95,6 +103,7 @@ export function ProjectForm({
               placeholder="E.g. Landing page redesign"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              required
             />
           </div>
           <div className="space-y-1.5">
@@ -108,6 +117,7 @@ export function ProjectForm({
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
+              required
             />
           </div>
           <div className="space-y-1.5">

@@ -44,7 +44,7 @@ export function PaymentRowActions({
         <Button
           size="sm"
           onClick={handleMarkPaid}
-          className="bg-primary text-foreground hover:bg-primary-dark font-medium"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 font-medium"
         >
           Mark paid
         </Button>

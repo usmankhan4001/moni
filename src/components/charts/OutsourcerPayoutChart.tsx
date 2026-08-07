@@ -19,31 +19,35 @@ export function OutsourcerPayoutChart({ data }: BarChartProps) {
   }
 
   return (
-    <div className="w-full h-72">
+    <div
+      className="w-full h-72"
+      role="img"
+      aria-label="Pending outsourcer payouts by contractor"
+    >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
           <XAxis
             dataKey="name"
             tickLine={false}
             axisLine={false}
-            tick={{ fontSize: 11, fill: "#6B7280" }}
+            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
           />
           <YAxis
             tickLine={false}
             axisLine={false}
-            tick={{ fontSize: 11, fill: "#6B7280" }}
+            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
             tickFormatter={(val) => `Rs ${Math.round(val / 1000)}k`}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "#1B2340",
-              borderColor: "#1B2340",
+              backgroundColor: "var(--popover)",
+              borderColor: "var(--border)",
               borderRadius: "8px",
-              color: "#FDFCFA",
+              color: "var(--popover-foreground)",
               fontSize: "12px",
             }}
-            formatter={(val: any) => [
+            formatter={(val: number | string | readonly (number | string)[] | undefined) => [
               `Rs ${Number(val || 0).toLocaleString()}`,
               "Due (PKR)",
             ]}

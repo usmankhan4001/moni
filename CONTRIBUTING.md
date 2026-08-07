@@ -2,6 +2,10 @@
 
 Thank you for your interest in contributing to **Moni — Your Freelance Project Finance Manager**!
 
+## Before you start
+
+Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before participating, and review [SECURITY.md](SECURITY.md) if you're reporting a vulnerability rather than contributing code (please do not open a public issue for security reports).
+
 ## Development Workflow
 
 1. **Fork the Repository**: Create a personal fork on GitHub.
@@ -22,10 +26,12 @@ Thank you for your interest in contributing to **Moni — Your Freelance Project
    ```
 6. **Verify Code Quality**:
    ```bash
+   npm run lint
    npm run typecheck
+   npm test
    npm run build
    ```
-7. **Submit a Pull Request**: Open a PR targeting the `main` or `V1.1` branch with a clear description of your changes.
+7. **Submit a Pull Request**: Open a PR targeting the `main` branch with a clear description of your changes.
 
 ## Code Standards
 - Adhere to the existing TypeScript conventions and Tailwind CSS styling patterns.

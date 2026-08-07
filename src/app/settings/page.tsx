@@ -7,7 +7,7 @@ import { PageShell } from "@/components/layout/PageShell";
 import { SetupRequiredBanner } from "@/components/shared/EmptyState";
 import { SettingsForm } from "@/components/shared/SettingsForm";
 import { BackupManager } from "@/components/shared/BackupManager";
-import { getBackupHistory } from "@/lib/r2";
+import { getBackupHistory, isR2Configured, isBackupEncryptionConfigured } from "@/lib/r2";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +44,11 @@ export default async function SettingsPage() {
         <div className="space-y-6">
           <SettingsForm settings={settings} />
 
-          <BackupManager history={backupHistory} />
+          <BackupManager
+            history={backupHistory}
+            r2Configured={await isR2Configured()}
+            encryptionConfigured={await isBackupEncryptionConfigured()}
+          />
 
           <Card>
             <CardHeader>

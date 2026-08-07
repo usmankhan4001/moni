@@ -1,6 +1,6 @@
-# Hisaab — Finance Tracker · Functional Specification
+# Moni — Functional Specification
 
-> A single-user, installable web app for a freelancer who earns **USD** (from international clients) and pays **outsourcers in PKR** every month. Built with Next.js (App Router), Supabase, shadcn/ui, and a "Ledger" design identity.
+> A self-hostable finance manager for a freelancer or small agency earning **USD** from clients and paying **outsourcers in PKR**. Built with Next.js 16 (App Router) + React 19, Drizzle ORM against native PostgreSQL 16, Tailwind v4, and shipped as a Docker image for Dokploy-style self-hosting.
 
 ---
 
@@ -8,117 +8,139 @@
 
 | Aspect | Detail |
 |---|---|
-| App name | **Hisaab** (اردو: حساب — "account / bookkeeping") |
+| App name | **Moni** |
 | Purpose | Track projects, accounts, transactions, and outsourcer dues across USD and PKR |
-| Deployment | Vercel (serverless, `force-dynamic` pages) |
-| Database | Supabase (PostgreSQL, all tables RLS-open for a single owner) |
-| Data flow | Pages are `async` server components → `src/lib/data.ts` (React `cache()`-wrapped reads) → Supabase |
+| Deployment | Self-hosted via Docker / Dokploy (not a Vercel/serverless app) |
+| Database | Native PostgreSQL 16, no external BaaS — Drizzle ORM for schema + type-safe queries |
+| Data flow | Pages are `async` server components → `src/lib/data.ts` (React `cache()`-wrapped reads) → Postgres |
 | Mutations | Server Actions in `src/app/actions.ts` — invoked from client components via `src/lib/action.ts#runAction`, never raw endpoints |
-| PWA | Installable; `public/sw.js`, generated icons, web manifest at `/manifest.webmanifest` |
+| PWA | Installable; Serwist-generated service worker, generated icons, web manifest |
+| Auth | Mode-dependent — see [§2 Deployment modes](#2-deployment-modes) |
 
 ---
 
-## 2. Currency model
+## 2. Deployment modes
+
+Moni runs in one of two modes, selected by the `DEPLOYMENT_MODE` environment variable. There is no auto-detection — the operator sets this explicitly at deploy time.
+
+### 2.1 `single_user`
+
+- Zero authentication. There is no login screen and no session concept.
+- On first read, the app auto-provisions a single default workspace (tenant) and every request is scoped to it.
+- Intended for one freelancer self-hosting the app for themselves, where the Postgres instance itself is the trust boundary.
+
+### 2.2 `multi_tenant`
+
+- Requires signup/login before any workspace data is reachable.
+- **Signup** creates a new tenant + user + membership (`role = owner`) together, in one transaction.
+- **Sessions** are a signed JWT stored in an httpOnly cookie, signed/verified using `jose`.
+  - `middleware.ts` verifies the session on every request and redirects unauthenticated requests away from protected routes.
+  - `src/lib/tenant.ts#getTenantId()` independently re-verifies the session server-side on every data access. The tenant ID is derived **only** from the cryptographically verified JWT — never from a client-supplied header, cookie value, or query param — so a request cannot spoof its way into another tenant's data by forging a header.
+- **`/admin`** is gated by the `ADMIN_EMAILS` environment variable (a comma-separated allowlist). It gives the instance operator a read-only list of all tenants provisioned on the instance — it is an operator console, not a per-tenant admin panel.
+
+Both modes share the same schema, screens, and business logic — the only difference is whether requests are gated by a verified session before `getTenantId()` resolves a tenant.
+
+---
+
+## 3. Money model
 
 Two currencies exist in the system:
 
 - **USD** — money earned from clients (income).
 - **PKR** — money held in local accounts and what outsourcers are paid.
 
-USD is the canonical keeping unit inside the app. Every PKR figure is derived from USD using the **exchange rate** stored in `app_settings.exchange_rate` (default `284.5`).
+USD is the canonical keeping unit inside the app. Every PKR figure is derived from USD using the **exchange rate** stored in `app_settings.exchange_rate` (per-tenant, default `284.50`).
 
-All money math goes through `src/lib/payments.ts`:
+All money math lives in `src/lib/payments.ts`:
 
-- Convert to integer **cents** at every boundary (`roundMoney`) so floating-point drift never accumulates.
-- Exchange breakdown: gross USD → minus tax → minus transfer fee → net USD → **× exchange rate = net PKR** → × **pay percentage = what the outsourcer actually receives**.
+- Every value is rounded to integer **cents** at each step (`toCents` / `fromCents` / `roundMoney`), so floating-point drift never accumulates across a multi-step chain.
+- `calculateOutsourcerPayment(grossUsd, { taxRate, transferFeeRate, exchangeRate, payPercentage })` runs the full deduction chain and returns a `PaymentBreakdown`.
 
-### The exact deduction chain (documented in-app on /settings)
+### The exact deduction chain
 
 1. Start with the gross value of an outsourcer's completed projects (USD).
-2. **Tax** at the outsourcer's `tax_rate` (default 5%) of the gross.
-3. **Transfer fee** at `transfer_fee_rate` (default 2%) of the amount left *after tax*.
-4. Convert the remainder to PKR at the exchange rate → true "net".
-5. Multiply by the pay percentage (default 70%) → the share passed to the outsourcer.
+2. **Tax**: `tax_rate`% of the gross is deducted.
+3. **Transfer fee**: `transfer_fee_rate`% of the amount *remaining after tax* is deducted.
+4. What's left is **net USD**.
+5. Convert to PKR at the tenant's `exchange_rate` → **net PKR**.
+6. Multiply by `pay_percentage`% → the amount actually owed to the outsourcer.
 
-Example (from /settings): a `$1,000` gross nets **Rs 219,653** in PKR after all deductions, and the outsourcer receives **Rs 153,757** (70%).
+```
+gross (completed project value in USD)
+  − tax                (gross × tax_rate %)
+  − transfer fee       ((gross − tax) × transfer_fee_rate %)
+  = net USD
+  × exchange rate      (USD → PKR)
+  = net PKR
+  × pay percentage     (net PKR × pay_percentage %)
+  = amount owed to outsourcer
+```
+
+### Validation
+
+`calculateOutsourcerPayment` validates every input and throws a `RangeError` on violation:
+
+- `grossUsd` must be non-negative.
+- `taxRate` and `transferFeeRate` and `payPercentage` must each be between `0` and `100`.
+- `exchangeRate` must be strictly positive.
 
 ---
 
-## 3. Screens / Routes
+## 4. Screens / routes
 
-All pages are marked `export const dynamic = "force-dynamic"` and share the sidebar `PageShell` layout. When Supabase is not configured, pages render a *"Connect your database"* banner instead of crashing.
+All pages are server components sharing the sidebar `PageShell` layout. When the database is not configured or a query fails, pages degrade to safe defaults instead of crashing (see [§6 Data layer](#6-data-layer--schema)).
 
-### 3.1 Dashboard — `/`
+### 4.1 Dashboard — `/`
 
-Server components render the page; `Suspense` boundaries stream in each section with skeletons.
+- **Stat cards**: total balance (all accounts converted to USD), monthly income (USD), monthly expenses (expense + fee, USD), pending payments (sum of pending `net_pkr`, in PKR).
+- **Recent projects** — a handful of the most recent, with status chip and amount.
+- **Recent activity** — latest transactions with income/expense/fee styling.
+- Charts (Recharts): cash-flow trend, account distribution, pending payouts.
 
-- **ConversionStamp** (signature element): a rotated, double-bordered circular badge showing live pending USD → PKR at the current rate.
-- **Stat cards**:
-  - Total balance (all accounts converted to USD)
-  - Monthly income (transactions filtered to current month, USD)
-  - Monthly expenses (expense + fee, USD)
-  - Pending payments (sum of pending `net_pkr`, in PKR)
-- **Recent projects** — up to 5, with status chip and amount.
-- **Recent activity** — last 5 transactions with income/expense/fee styling.
-- **Next payment panel** — dark ink panel summing pending dues in PKR.
-
-### 3.2 Accounts (`/`accounts`)
+### 4.2 Accounts — `/accounts`
 
 - Cards per account (currency badge + derived **balance**).
-- Balance is **computed**, not stored: `src/lib/data.ts#getAccounts` sums
-  `income + expenses −` sign per transaction for each account.
-- Summary stats: # accounts, USD holdings (≈ PKR at the rate), PKR holdings, **Net worth** (all converted to PKR).
-- Add account (name, currency `USD | PKR`) via `AccountForm`; delete via `DeleteAccountButton`.
-- Empty state: *"Add a Wise USD balance and a PKR bank account…"*.
+- Balance is **computed**, not stored: `src/lib/data.ts` sums signed transaction amounts per account.
+- Summary stats: number of accounts, USD holdings, PKR holdings, net worth (all converted to PKR).
+- Add account (name, currency `USD | PKR`); delete.
 
-### 3.3 Outsourcers (`/outsourcers`)
+### 4.3 Outsourcers — `/outsourcers`
 
 - Roster of people you pay, each with **name**, **tax rate**, **transfer fee rate**.
-- Per-row computed values from completed projects:
-  - `monthlyPayPkr` — "Monthly would-pay" = full payment math (`calculateOutsourcerPayment`) applied to the outsourcer's completed USD.
-- Stats: active outsourcers, projects assigned (completed count), default rates.
-- Create / edit (`OutsourcerForm`), delete (`DeleteOutsourcerButton` — blocked if projects reference them).
+- Per-row computed "monthly would-pay" using `calculateOutsourcerPayment` against the outsourcer's completed project value.
+- Create / edit / delete (delete is blocked if projects still reference the outsourcer).
 
-### 3.4 Projects (`/projects`)
+### 4.4 Projects — `/projects`
 
-- Tracked client work with `title`, `amount_usd`, optional `outsourcer_id`, and `status` (active / completed / cancelled).
-- Each project computes a payment breakdown preview using `calculateOutsourcerPayment` with the global default rates.
-- Stats: **Active value** (sum of `amount_usd` for active projects) and counts.
-- Add project (`ProjectForm`), change status + delete (`ProjectActions`).
+- Tracked client work: `title`, `amount_usd`, optional `outsourcer_id`, and `status` (`active` / `completed` / `cancelled`).
+- Each project shows a payment breakdown preview using the tenant's default rates.
+- Add project, change status, delete.
 
-### 3.5 Payments (`/payments`)
+### 4.5 Payments — `/payments`
 
-- **Run generator** (`GeneratePaymentDialog`): pick a month (`YYYY-MM`), exchange rate, and pay percentage. For every **completed** project assigned to an outsourcer:
-  - Group by outsourcer, sum gross USD, run the full deduction chain, `upsert` one row into `outsourcer_payments` keyed on `(outsourcer_id, month)`, `due_date` = 1st of the month, status `pending`.
-- **Pending dues** grouped by month, each rendered as a `PaymentCard`:
-  - Gross USD, tax (rate + USD), transfer fee (rate + USD), net USD, net PKR, exchange rate, status chip.
-  - `Mark as paid`, `Delete`.
-- **Summary cards**: total pending dues (PKR), pending count, next due date.
-- **Payment history**: previously paid rows, dimmed, showing outsourcer + paid date + net PKR.
+- **Run generator**: pick a month (`YYYY-MM`), exchange rate, and pay percentage. For every **completed** project assigned to an outsourcer, groups by outsourcer, sums gross USD, runs the full deduction chain, and upserts one row into `outsourcer_payments` keyed on `(tenant_id, outsourcer_id, month)`.
+- **Pending dues**, grouped by month: gross USD, tax (rate + USD), transfer fee (rate + USD), net USD, net PKR, exchange rate, status chip.
+- Mark as paid / void a pending payment.
+- **Payment history**: previously paid rows, showing outsourcer, paid date, and net PKR.
 
-### 3.6 Transactions (`/transactions`)
+### 4.6 Transactions — `/transactions`
 
-- Full financial ledger: type (`income` expensed `fee`), description, amount, currency, optional project + account link, date.
-- **Stat cards** converted to USD: income, expenses, fees (PKR transactions divided by `exchange_rate`).
-- `NewTransactionDialog` records a transaction; `TransactionRowActions` deletes.
-- Table shows account / project names joined from `accounts` and `projects`.
+- Full financial ledger: type (`income` / `expense` / `fee`), description, amount, currency, optional project + account link, date.
+- Stat cards converted to USD (PKR transactions divided by `exchange_rate`).
+- Record a transaction; delete a transaction.
+- Table joins account / project names from `accounts` and `projects`.
 
-### 3.7 Settings (`/settings`)
+### 4.7 Settings — `/settings`
 
-- **SettingsForm** edits:
-  - exchange rate (PKR per USD)
-  - pay % (share sent to outsourcers)
-  - default tax %, default transfer fee %
-- Persist via `updateSettings` as a single row (`app_settings.id = 1`, `upsert` on conflict).
-- **"How payments are calculated"** walkthrough + live example at `$1,000` gross.
-- **Demo data**: `SeedButton` → `seedDemoData` wipes all tables then inserts a small starter set (2 accounts, 3 outsources, 4 projects, 2 transactions, settings). Destructive.
+- Edits exchange rate, pay percentage, default tax rate, default transfer fee rate — one row per tenant in `app_settings`.
+- "How payments are calculated" walkthrough with a live example.
+- Backup management: trigger a manual backup, view backup history, restore from a backup (see [§7 Backups](#7-backups)).
 
 ---
 
-## 4. Server Actions (mutation layer)
+## 5. Server Actions (mutation layer)
 
-All in `src/app/actions.ts` (`"use server"`), returning `ActionResult = { ok, message }`, and always
-`revalidatePath` the affected routes after a write.
+All in `src/app/actions.ts` (`"use server"`), each returning `ActionResult = { ok: boolean; message: string }`, calling `revalidatePath` on the affected routes after a write. Client components call them through `src/lib/action.ts#runAction`, which wraps the call in `startTransition`, shows a `sonner` toast on success/failure, and surfaces thrown errors as a toast rather than an unhandled rejection.
 
 | Action | What it does |
 |---|---|
@@ -126,81 +148,84 @@ All in `src/app/actions.ts` (`"use server"`), returning `ActionResult = { ok, me
 | `createOutsourcer` / `updateOutsourcer` / `deleteOutsourcer` | Manage roster + rates |
 | `createProject` / `updateProjectStatus` / `deleteProject` | Manage work items |
 | `createTransaction` / `deleteTransaction` | Manage the ledger |
-| `generateMonthlyPayments` | Bullet the per-outsourcer monthly run |
-| `markPaymentPaid` / `deletePayment` | Settle or remove a payment |
-| `updateSettings` | Save global rates and defaults |
-| `seedDemoData` | Replace data with the demo dataset |
+| `generateMonthlyPayments` | Run the per-outsourcer monthly payment generation |
+| `markPaymentPaid` / `deletePayment` | Settle or void a payment |
+| `updateSettings` | Save a tenant's rates and defaults |
 
-**Error handling:** validations are server-side (positive amounts, rate range 0–100, month format `YYYY-MM`, pay %
-0–100). If Supabase env is unset, every action returns a "not connected" error instead of crashing.
-Client callers wrap actions with `runAction` (toast on success/failure, snow startTransition).
+**Error handling:** validation is server-side (non-negative amounts, rate ranges `0`–`100`, month format `YYYY-MM`). If the database is not configured or a query throws, actions return a `{ ok: false, message }` result instead of crashing.
+
+Every action is implicitly scoped to `getTenantId()` — reads and writes never take a tenant identifier from the caller.
 
 ---
 
-## 5. Data layer & schema
+## 6. Data layer & schema
 
-`src/lib/data.ts` — async, `cache()`-wrapped reads. All queries `.catch`-style guard:
-**any query failure degrades gracefully** (`err` → default values) so the UI never throws when the DB
-is down or a table is missing.
+`src/lib/data.ts` holds async, `cache()`-wrapped reads. Queries are guarded so that **any query failure degrades gracefully** (default values / empty lists) rather than throwing — the UI never crashes outright when the DB is unreachable or mid-migration.
 
-| Table | Rows | Notes |
+Schema lives in `src/db/schema.ts` (Drizzle) and is applied with `drizzle-kit push` / migrations.
+
+| Table | Purpose | Notes |
 |---|---|---|
-| `accounts` | id, name, usd/pkr | RLS open |
-| `outsourcers` | id, name (uniq), tax_rate, transfer_fee_rate | |
-| `projects` | id, title, amount_usd, outsourcer_id, status | FK → outsourcers (SET NULL) |
-| `transactions` | id, type, description, amount, currency, project_id, account_id, transaction_date | FKs incl. nullable |
-| `outsourcer_payments` | id, outsourcer_id, month, gross/tax/fee/net (USD+PKR), status, due_date, paid_at | `UNIQUE(outsourcer_id, month)`, DB-enforced math invariants |
-| `app_settings` | `id=1` singleton: exchange_rate, pay %, default rates | single-row pattern |
+| `tenants` | One row per workspace | `id`, `name`, `slug` (unique), `plan` |
+| `users` | Login identities | `email` (unique), `password_hash` — only populated in `multi_tenant` mode |
+| `memberships` | User ↔ tenant join | `role` (`owner` / `admin` / `member`), unique on `(user_id, tenant_id)` |
+| `app_settings` | Per-tenant rates | one row per tenant, unique on `tenant_id` |
+| `accounts` | USD/PKR holding accounts | |
+| `outsourcers` | People paid monthly | `tax_rate`, `transfer_fee_rate` |
+| `projects` | Client work items | FK → `outsourcers` (`SET NULL` on delete) |
+| `transactions` | Ledger entries | FKs to `accounts`/`projects` are nullable |
+| `outsourcer_payments` | Generated monthly payment runs | unique on `(tenant_id, outsourcer_id, month)` |
+| `backups` | Backup manifest | per-tenant; `file_key`, `file_size`, `provider`, `encrypted` boolean |
 
-Schema lives at `db/schema.sql` — run it once in the Supabase SQL editor (tables, triggers,
-RLS "open access" policies lot).
-
-### RLS model
-All policies are `FOR ALL USING (true) WITH CHECK (true)` — a single-owner app trusting the client key.
-Not for public/multi-tenant use; acceptable for this personal tool.
-
-### Costant keys
-- Supabase URL: env `NEXT_PUBLIC_SUPABASE_URL`; anon key: `ENV_PUBLIC_SUPABASE_ANON_KEY`.
-- Service role key (`SUPABASE_SERVICE_ROLE_KEY`) is only instantiated server-side when configured
-  (used by `scripts/seed.mjs`).
+Every business table (`accounts`, `outsourcers`, `projects`, `transactions`, `outsourcer_payments`, `backups`, `app_settings`) carries a `tenant_id` foreign key with `ON DELETE CASCADE` back to `tenants`, plus an index on `tenant_id` (composite where the table also indexes another dimension, e.g. `outsourcer_payments` indexes `(tenant_id, outsourcer_id, month)`). This is the isolation mechanism in both deployment modes: `single_user` has exactly one tenant row and every query is scoped to it the same way `multi_tenant` scopes to whichever tenant the verified session names.
 
 ---
 
-## 6. PWA / installability
+## 7. Backups
 
-- `src/app/manifest.ts` — name/short_name, `standalone`, theme colors (Ledger ink/paper).
-- `public/icons/icon-192.png`, `icon-512.png` — generated via `npm run icons`.
-- `public/sw.js` — offline-capable service worker; registered only in production
-  (`ServiceWorkerRegistration`).
-- Install banner works from the browser "Install app" affordance.
+- Backups are stored in Cloudflare R2 (S3-compatible) via `src/lib/r2.ts`, uploaded with the AWS SDK's S3 client pointed at the R2 endpoint.
+- Backup payloads are encrypted with **AES-256-GCM** before upload. A `BACKUP_ENCRYPTION_KEY` environment variable is required for backups to run — there is no unencrypted fallback path.
+- Backups run automatically once a day via the `/api/cron/backup` route, which is protected by a shared-secret check against the `CRON_SECRET` environment variable. A small cron sidecar service defined in `docker-compose.yml` calls this endpoint on a schedule.
+- Backups can also be triggered manually from the Settings screen.
+- **Restore** is available from Settings: it is destructive (overwrites current tenant data), tenant-scoped (only ever restores into the tenant that owns the backup), and gated behind an explicit confirmation step.
 
 ---
 
-## 7. Setup / run / deploy
+## 8. PWA / installability
+
+- `src/app/manifest.ts` (or equivalent manifest route) — name/short_name, `standalone` display, theme colors.
+- Service worker is generated at build time by **Serwist** (`@serwist/next`, `@serwist/precaching`) and registered client-side in production.
+- Icons under `public/icons/` are generated via `npm run icons` (`scripts/generate-icons.mjs`) from the brand SVG.
+- Install banner works from the browser's native "Install app" affordance.
+
+---
+
+## 9. Setup / run / deploy
 
 ### Local
+
 ```bash
 npm install
-cp .env.example .env.local      # fill SUPABASE_URL + anon key
-npm run dev                     # (Next dev; Vercel env not required)
+cp .env.example .env.local      # set DATABASE_URL, DEPLOYMENT_MODE, etc.
+npx drizzle-kit push            # apply schema to Postgres
+npm run dev
 ```
 
-### Database
-1. Create a Supabase project.
-2. Open **SQL editor** → paste contents of `db/schema.sql` → run.
-3. (Optional) `npm run seed` (`scripts/seed.mjs`) to load the demo set server-side.
+### Self-hosted (Docker / Dokploy)
 
-### Deploy (Vercel)
-1. Push this repo to GitHub.
-2. In Vercel → **New Project** → import the repo (Next.js auto-detected).
-3. Add environment variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-4. Deploy. The app renders a friendly "Connect your database" banner until connected.
+1. Build/run via the provided `Dockerfile` and `docker-compose.yml` (Next.js standalone build + Postgres + cron sidecar for backups).
+2. Set `DEPLOYMENT_MODE` (`single_user` or `multi_tenant`), `DATABASE_URL`, and — for `multi_tenant` — `AUTH_SECRET`.
+3. For backups, set the R2 credentials (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`), `BACKUP_ENCRYPTION_KEY`, and `CRON_SECRET`.
+4. Point a reverse proxy / tunnel at container port `3000`.
 
 ---
 
-## 7. Non-goals / limits
+## 10. Non-goals / current limits
 
-- **Auth**: intentionally none (single owner, open RLS). Do not expose to strangers.
-- **Sync**: components are server-rendered; no offline write queue (PWA caches static shells only).
-- **Multi-currency FX history**: rates are global, not per-payment-settlement; no historical-rate table.
-- **Reports/export**: not included (stat cards summarize; no CSV/PDF).
+Documented honestly rather than aspirationally:
+
+- **No OAuth / social login** — email + password only, in `multi_tenant` mode.
+- **No password reset or email flows** — there is no outbound mail infrastructure wired up yet. A locked-out user currently has no self-service recovery path.
+- **Rate limiting is in-memory and single-instance only** — it is not safe or effective across horizontally-scaled replicas (each instance has its own counters).
+- **No per-payment historical FX-rate table** — `exchange_rate` is the tenant's current setting at generation time; past payment runs store the rate they used, but there is no independent rate-history table to audit against.
+- **Reports/export**: no CSV export; PDF/print is limited to per-payment vouchers, not full reports.

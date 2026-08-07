@@ -21,7 +21,11 @@ export function IncomeDistributionChart({ data }: DonutChartProps) {
   }
 
   return (
-    <div className="w-full h-72">
+    <div
+      className="w-full h-72"
+      role="img"
+      aria-label="Income distribution by account"
+    >
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -39,13 +43,13 @@ export function IncomeDistributionChart({ data }: DonutChartProps) {
           </Pie>
           <Tooltip
             contentStyle={{
-              backgroundColor: "#1B2340",
-              borderColor: "#1B2340",
+              backgroundColor: "var(--popover)",
+              borderColor: "var(--border)",
               borderRadius: "8px",
-              color: "#FDFCFA",
+              color: "var(--popover-foreground)",
               fontSize: "12px",
             }}
-            formatter={(val: any) => [
+            formatter={(val: number | string | readonly (number | string)[] | undefined) => [
               `$${Number(val || 0).toLocaleString()}`,
               "Amount",
             ]}

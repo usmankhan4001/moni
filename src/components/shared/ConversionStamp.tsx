@@ -1,5 +1,7 @@
 "use client";
 
+import { formatUSD, formatPKR } from "@/lib/format";
+
 interface ConversionStampProps {
   usdAmount: number;
   exchangeRate: number;
@@ -14,22 +16,6 @@ export function ConversionStamp({
   showLabel = true,
 }: ConversionStampProps) {
   const pkrAmount = usdAmount * exchangeRate;
-
-  const formatUSD = (amount: number) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-
-  const formatPKR = (amount: number) =>
-    new Intl.NumberFormat("en-PK", {
-      style: "currency",
-      currency: "PKR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
 
   const sizeClasses = {
     sm: "w-20 h-20 text-[10px]",
@@ -54,7 +40,7 @@ export function ConversionStamp({
         {/* Content */}
         <div className="relative z-10 text-center" suppressHydrationWarning>
           <p className="font-mono font-semibold text-primary leading-none" suppressHydrationWarning>
-            {formatPKR(pkrAmount)}
+            {formatPKR(pkrAmount, { maximumFractionDigits: 0 })}
           </p>
           <p className="text-[8px] uppercase tracking-wider text-primary mt-1 opacity-70" suppressHydrationWarning>
             @ {exchangeRate.toFixed(2)}
@@ -65,7 +51,7 @@ export function ConversionStamp({
       {showLabel && (
         <div className="text-center" suppressHydrationWarning>
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground" suppressHydrationWarning>
-            Converted from {formatUSD(usdAmount)}
+            Converted from {formatUSD(usdAmount, { maximumFractionDigits: 0 })}
           </p>
         </div>
       )}

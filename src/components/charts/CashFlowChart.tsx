@@ -29,7 +29,11 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
   }
 
   return (
-    <div className="w-full h-72">
+    <div
+      className="w-full h-72"
+      role="img"
+      aria-label="Cash flow trend: income versus expenses over the last 6 months"
+    >
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <defs>
@@ -42,28 +46,28 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
               <stop offset="95%" stopColor="#EF4444" stopOpacity={0.0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
           <XAxis
             dataKey="month"
             tickLine={false}
             axisLine={false}
-            tick={{ fontSize: 11, fill: "#6B7280" }}
+            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
           />
           <YAxis
             tickLine={false}
             axisLine={false}
-            tick={{ fontSize: 11, fill: "#6B7280" }}
+            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
             tickFormatter={(val) => `$${val}`}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "#1B2340",
-              borderColor: "#1B2340",
+              backgroundColor: "var(--popover)",
+              borderColor: "var(--border)",
               borderRadius: "8px",
-              color: "#FDFCFA",
+              color: "var(--popover-foreground)",
               fontSize: "12px",
             }}
-            formatter={(value: any) => [
+            formatter={(value: number | string | readonly (number | string)[] | undefined) => [
               `$${Number(value || 0).toLocaleString("en-US", { minimumFractionDigits: 0 })}`,
             ]}
           />

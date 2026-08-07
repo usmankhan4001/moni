@@ -100,7 +100,7 @@ export function PaymentVoucherDialog({ payment }: PaymentVoucherProps) {
             </div>
             <div className="flex justify-between py-1 border-b border-border/40">
               <span className="text-muted-foreground">Exchange Rate</span>
-              <span className="font-mono">USD 1 = PKR {payment.exchange_rate}</span>
+              <span className="font-mono">USD 1 = PKR {payment.exchange_rate.toFixed(2)}</span>
             </div>
 
             {/* Total Payable PKR */}

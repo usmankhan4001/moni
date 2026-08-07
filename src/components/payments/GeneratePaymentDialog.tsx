@@ -50,6 +50,8 @@ export function GeneratePaymentFields({
   const [result, setResult] = useState<string | null>(null);
 
   useEffect(() => {
+    // Intentional: computed client-side only so server/client don't disagree on "now".
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMonth(currentMonthKey());
   }, []);
 

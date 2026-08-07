@@ -6,7 +6,7 @@
 
 [![Next.js](https://img.shields.io/badge/Next.js-16.3-black?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue?style=flat-square&logo=postgresql)](https://www.postgresql.org/)
-[![Drizzle ORM](https://img.shields.io/badge/Drizzle_ORM-0.38-green?style=flat-square&logo=drizzle)](https://orm.drizzle.team/)
+[![Drizzle ORM](https://img.shields.io/badge/Drizzle_ORM-0.45-green?style=flat-square&logo=drizzle)](https://orm.drizzle.team/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
 [![PWA Ready](https://img.shields.io/badge/PWA-Installable-purple?style=flat-square&logo=pwa)](https://web.dev/progressive-web-apps/)
 [![Docker & Dokploy](https://img.shields.io/badge/Docker-Dokploy_Ready-blueviolet?style=flat-square&logo=docker)](https://dokploy.com/)
@@ -44,10 +44,10 @@
                                                         │
              ┌──────────────────────────────────────────┴──────────────────────────────────────────┐
              │                                                                                     │
-   ┌─────────▼─────────────────────────┐                                                 ┌─────────▼─────────────────────────┐
-   │ Next.js 16 (App Router + React 19)│                                                 │     PostgreSQL 16 Database        │
-   │ Mode: Single-User OR Multi-Tenant │ ─── Drizzle ORM (Type-safe Queries & Schemas) ──►│ (Tenant-Isolated Scoping + RLS) │
-   └─────────────────┬─────────────────┘                                                 └───────────────────────────────────┘
+   ┌─────────▼─────────────────────────┐                                                 ┌─────────▼────────────────────────────────┐
+   │ Next.js 16 (App Router + React 19)│                                                 │     PostgreSQL 16 Database               │
+   │ Mode: Single-User OR Multi-Tenant │ ── Drizzle ORM (Type-safe Queries & Schemas) ──►│ (Tenant-Isolated Scoping + Session Auth) │
+   └─────────────────┬─────────────────┘                                                 └──────────────────────────────────────────┘
                      │
       ┌──────────────┴──────────────┐
       │  Cloudflare R2 Free Tier    │ (Automated Daily Encrypted DB Backups & Snapshots)
@@ -85,9 +85,6 @@ gross (completed project value in USD)
 git clone https://github.com/photoshop3rrr/Moni.git
 cd Moni
 
-# Checkout V1.1 branch
-git checkout V1.1
-
 # Install dependencies
 npm install
 
@@ -111,6 +108,27 @@ npm run seed
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## 🔐 Authentication (multi-tenant mode)
+
+By default Moni runs in `single_user` mode, which has zero authentication. To enable multi-tenant login, set two environment variables:
+
+```env
+DEPLOYMENT_MODE=multi_tenant
+AUTH_SECRET=your_long_random_secret
+```
+
+Generate a strong `AUTH_SECRET`:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+Then visit `/signup` to create the first workspace (tenant), which also creates the owner account for it.
+
+In `single_user` mode, no auth is needed at all — `/signup` and `/login` are not used.
 
 ---
 
@@ -152,6 +170,7 @@ docker-compose up -d --build
 | `npm run typecheck` | Runs TypeScript type checker (`tsc --noEmit`) |
 | `npm run lint` | Runs ESLint analysis |
 | `npm run seed` | Seeds starter accounts, projects, and transactions into Postgres |
+| `npm run icons` | Regenerates PWA icons from the brand SVG |
 
 ---
 

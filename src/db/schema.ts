@@ -6,6 +6,7 @@ import {
   timestamp,
   date,
   integer,
+  boolean,
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
@@ -171,6 +172,7 @@ export const backups = pgTable("backups", {
   fileKey: text("file_key").notNull(),
   fileSize: integer("file_size").notNull(),
   provider: text("provider").notNull().default("r2"),
+  encrypted: boolean("encrypted").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   index("backups_tenant_idx").on(table.tenantId),
