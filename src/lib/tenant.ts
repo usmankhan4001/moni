@@ -8,8 +8,33 @@ export const DEFAULT_TENANT_SLUG = "default";
 
 export type DeploymentMode = "single_user" | "multi_tenant";
 
+const DEPLOYMENT_MODES: readonly string[] = ["single_user", "multi_tenant"];
+
+/**
+ * Reads DEPLOYMENT_MODE, tolerating the hyphenated spelling people naturally
+ * type ("single-user") since the underscore form is easy to get wrong.
+ *
+ * This used to be a blind `as DeploymentMode` cast, which meant any typo
+ * produced a mode string matching NEITHER branch of getTenantId() — so
+ * "single-user" silently took the multi-tenant path and threw
+ * "Not authenticated." on every data page of a no-auth deployment.
+ *
+ * An unrecognised value now fails CLOSED (multi_tenant) rather than defaulting
+ * to single_user: guessing single_user would disable authentication outright
+ * on a real multi-tenant install, which is far worse than an outage.
+ */
 export function getDeploymentMode(): DeploymentMode {
-  return (process.env.DEPLOYMENT_MODE as DeploymentMode) || "single_user";
+  const raw = process.env.DEPLOYMENT_MODE;
+  if (!raw?.trim()) return "single_user";
+
+  const normalized = raw.trim().toLowerCase().replace(/-/g, "_");
+  if (DEPLOYMENT_MODES.includes(normalized)) return normalized as DeploymentMode;
+
+  console.error(
+    `Invalid DEPLOYMENT_MODE ${JSON.stringify(raw)} — expected one of ` +
+      `${DEPLOYMENT_MODES.join(" | ")}. Failing closed to multi_tenant.`,
+  );
+  return "multi_tenant";
 }
 
 let migrationPromise: Promise<void> | null = null;

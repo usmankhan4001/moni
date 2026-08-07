@@ -139,18 +139,29 @@ Set the following environment variables in your Dokploy application settings:
 
 ```env
 NODE_ENV=production
-DATABASE_URL=postgres://moni_user:moni_password@db:5432/moni_db
 DEPLOYMENT_MODE=multi_tenant
 AUTH_SECRET=your_generated_auth_secret
-MONI_DOMAIN=yourdomain.com
+POSTGRES_PASSWORD=your_postgres_password
 R2_ACCOUNT_ID=your_cloudflare_r2_account_id
 R2_ACCESS_KEY_ID=your_cloudflare_r2_access_key
 R2_SECRET_ACCESS_KEY=your_cloudflare_r2_secret_key
 R2_BUCKET_NAME=moni-backups
 ```
 
-`MONI_DOMAIN` is the apex domain only — no scheme, no wildcard, no trailing
-slash. Traefik's Host rule is generated from it.
+Do **not** set `DATABASE_URL` here. `docker-compose.yml` builds it from
+`POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`, and a service-level
+`environment:` entry overrides anything you set in the panel — so a
+`DATABASE_URL` you add is silently ignored, while still looking authoritative
+to whoever debugs this next.
+
+> ⚠️ **`POSTGRES_PASSWORD` is only applied when the Postgres volume is first
+> created.** Changing it later does **not** change the password of an existing
+> database — Postgres ignores it once `/var/lib/postgresql/data` is populated.
+> The app then fails to authenticate, `/api/health` returns 503, and the
+> container goes unhealthy. See "Domain returns 404" below for why that
+> surfaces as a 404. To rotate it on a live deployment you must run
+> `ALTER USER ... WITH PASSWORD` inside the running container *and* update the
+> variable together.
 
 ### 2. Dokploy Server Docker Compose Setup
 Dokploy automatically uses the included `docker-compose.yml`:
@@ -159,13 +170,31 @@ Dokploy automatically uses the included `docker-compose.yml`:
 docker-compose up -d --build
 ```
 
-The app service ships with `traefik.enable=true`, a Host rule covering both
-`yourdomain.com` and `*.yourdomain.com`, and an attachment to the external
-`dokploy-network`. Traefik needs all three to route to the container — the
-service publishes no host port by design. If the domain returns a plain-text
-`404 page not found`, that is Traefik reporting that no router matched, which
-almost always means `MONI_DOMAIN` is unset/mismatched or `dokploy-network`
-doesn't exist on the host.
+Add the domain under the compose service's **Domains** tab (service name `app`,
+port `3000`). Dokploy generates the Traefik router labels and attaches the
+container to `dokploy-network` itself at deploy time — **do not hand-write
+`traefik.*` labels into `docker-compose.yml`**, they only create a second,
+conflicting router.
+
+#### Domain returns `404 page not found`
+
+That plain-text 404 comes from Traefik, not Next.js, and means no router
+matched the request. The non-obvious cause: **Traefik's Docker provider skips
+containers whose healthcheck is failing** ("Filtering unhealthy or starting
+container"). So an app that can't reach its database drops out of Traefik
+entirely and the domain 404s — you never see a 502, which makes it look like a
+routing problem when it's actually a backend problem.
+
+Check the container's health before touching any routing config:
+
+```bash
+docker ps --filter name=app --format '{{.Names}}\t{{.Status}}'
+docker inspect --format '{{json .State.Health}}' <app-container> | jq
+docker logs <app-container> --tail 50
+```
+
+If it says `(unhealthy)`, fix the healthcheck failure — the 404 resolves on its
+own once the container is healthy.
 
 ### 3. Cloudflare Wildcard Tunnel Configuration
 - Point your wildcard hostname `*.yourdomain.com` (and the apex) at the tunnel,

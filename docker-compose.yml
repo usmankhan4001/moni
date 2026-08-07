@@ -33,27 +33,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
-    # `expose` alone only reaches sibling containers — it publishes nothing.
-    # Dokploy's Traefik therefore needs BOTH of these to route your domain
-    # here; without them Traefik matches no router and answers its default
-    # `404 page not found` for every request. Note this service joins two
-    # networks on purpose: `internal` keeps `db:5432` resolvable, while
-    # `dokploy-network` is what Traefik itself is attached to.
-    networks:
-      - internal
-      - dokploy-network
-    labels:
-      - "traefik.enable=true"
-      # Matches the apex domain plus every tenant subdomain under it, so a
-      # Cloudflare wildcard tunnel (*.yourdomain.com) resolves. `$$` is the
-      # Compose escape that emits a literal `$` for the regex anchor.
-      - 'traefik.http.routers.moni.rule=Host(`${MONI_DOMAIN:-moni.localhost}`) || HostRegexp(`^.+\.${MONI_DOMAIN:-moni.localhost}$$`)'
-      # Cloudflare Tunnel terminates TLS at the edge and reaches the origin
-      # over plain HTTP, so route on the `web` entrypoint. If you instead
-      # expose this server directly to the internet, switch to
-      # `websecure` and add: traefik.http.routers.moni.tls.certresolver=letsencrypt
-      - "traefik.http.routers.moni.entrypoints=web"
-      - "traefik.http.services.moni.loadbalancer.server.port=3000"
 
   db:
     image: postgres:16-alpine
@@ -71,10 +50,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    # Deliberately NOT on dokploy-network — Postgres stays unreachable from
-    # Traefik and every other Dokploy project on that shared network.
-    networks:
-      - internal
 
   # Calls the app's protected cron endpoint once a day to run encrypted
   # workspace backups. Only does anything once BACKUP_ENCRYPTION_KEY,
@@ -97,18 +72,6 @@ services:
           fi
           sleep 86400;
         done
-    networks:
-      - internal
-
-networks:
-  # Private bridge for app <-> db <-> cron. Declaring any `networks:` key on a
-  # service opts it out of the implicit default network, so every service must
-  # name this one explicitly or hostname resolution between them breaks.
-  internal:
-  # Created by Dokploy on the host; Traefik lives here. `external: true` means
-  # Compose attaches to it rather than trying to create it.
-  dokploy-network:
-    external: true
 
 volumes:
   postgres_data:
