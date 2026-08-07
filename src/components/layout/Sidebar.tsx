@@ -11,7 +11,7 @@ import {
   Wallet2,
   Settings2,
 } from "lucide-react";
-import { MobileQuickActionSheet } from "@/components/MobileQuickActionSheet";
+import { MobileQuickActionSheet } from "@/components/layout/MobileQuickActionSheet";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },

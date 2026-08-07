@@ -3,10 +3,10 @@ import type { AppSettings } from "@/lib/data";
 import { formatPKR, formatUSD } from "@/lib/format";
 import { calculateOutsourcerPayment } from "@/lib/payments";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageShell } from "@/components/PageShell";
-import { SetupRequiredBanner } from "@/components/EmptyState";
-import { SettingsForm } from "@/components/settings-form";
-import { BackupManager } from "@/components/BackupManager";
+import { PageShell } from "@/components/layout/PageShell";
+import { SetupRequiredBanner } from "@/components/shared/EmptyState";
+import { SettingsForm } from "@/components/shared/SettingsForm";
+import { BackupManager } from "@/components/shared/BackupManager";
 import { getBackupHistory } from "@/lib/r2";
 
 export const dynamic = "force-dynamic";

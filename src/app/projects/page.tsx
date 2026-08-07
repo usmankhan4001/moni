@@ -1,9 +1,9 @@
 import { isReady, getProjects, getSettings, getOutsourcers } from "@/lib/data";
-import { PageShell } from "@/components/PageShell";
-import { SetupRequiredBanner } from "@/components/EmptyState";
-import { ProjectForm } from "@/components/ProjectForm";
-import { ProjectActions } from "@/components/ProjectActions";
-import { ConversionStamp } from "@/components/ConversionStamp";
+import { PageShell } from "@/components/layout/PageShell";
+import { SetupRequiredBanner } from "@/components/shared/EmptyState";
+import { ProjectForm } from "@/components/projects/ProjectForm";
+import { ProjectActions } from "@/components/projects/ProjectActions";
+import { ConversionStamp } from "@/components/shared/ConversionStamp";
 import { Badge } from "@/components/ui/badge";
 import { formatUSD, formatPKR } from "@/lib/format";
 import { calculateOutsourcerPayment } from "@/lib/payments";

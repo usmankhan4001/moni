@@ -1,6 +1,6 @@
-import { PageShell } from "@/components/PageShell";
-import { EmptyState, SetupRequiredBanner } from "@/components/EmptyState";
-import { StatCard } from "@/components/StatCard";
+import { PageShell } from "@/components/layout/PageShell";
+import { EmptyState, SetupRequiredBanner } from "@/components/shared/EmptyState";
+import { StatCard } from "@/components/shared/StatCard";
 import { NewTransactionDialog } from "@/components/transactions/NewTransactionDialog";
 import { TransactionsTable } from "@/components/transactions/TransactionsTable";
 import {

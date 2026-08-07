@@ -1,17 +1,17 @@
 import { Suspense } from "react";
 import { isReady, getDashboardData, getPayments, getSettings } from "@/lib/data";
 import type { TransactionWithRelations } from "@/lib/data";
-import { PageShell } from "@/components/PageShell";
-import { SetupRequiredBanner, EmptyState } from "@/components/EmptyState";
-import { StatCard } from "@/components/StatCard";
-import { ConversionStamp } from "@/components/ConversionStamp";
+import { PageShell } from "@/components/layout/PageShell";
+import { SetupRequiredBanner, EmptyState } from "@/components/shared/EmptyState";
+import { StatCard } from "@/components/shared/StatCard";
+import { ConversionStamp } from "@/components/shared/ConversionStamp";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatUSD, formatPKR, pluralize } from "@/lib/format";
 import { currentMonthKey, monthLabel } from "@/lib/date";
 import { CashFlowChart } from "@/components/charts/CashFlowChart";
 import { IncomeDistributionChart } from "@/components/charts/IncomeDistributionChart";
 import { OutsourcerPayoutChart } from "@/components/charts/OutsourcerPayoutChart";
-import { ClientOnly } from "@/components/ClientOnly";
+import { ClientOnly } from "@/components/shared/ClientOnly";
 
 export const dynamic = "force-dynamic";
 

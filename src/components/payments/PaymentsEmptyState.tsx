@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
-import { EmptyState } from "@/components/EmptyState";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { GeneratePaymentFields } from "@/components/payments/GeneratePaymentDialog";
 
 export function PaymentsEmptyState({

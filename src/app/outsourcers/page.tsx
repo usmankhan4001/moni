@@ -2,11 +2,11 @@ import type { Outsourcer } from "@/lib/data";
 import { getOutsourcers, getProjects, getSettings } from "@/lib/data";
 import { calculateOutsourcerPayment } from "@/lib/payments";
 import { formatPKR, formatUSD, pluralize } from "@/lib/format";
-import { PageShell } from "@/components/PageShell";
-import { EmptyState } from "@/components/EmptyState";
-import { StatCard } from "@/components/StatCard";
-import { OutsourcerForm } from "@/components/outsourcer-form";
-import { DeleteOutsourcerButton } from "@/components/outsourcer-delete";
+import { PageShell } from "@/components/layout/PageShell";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { StatCard } from "@/components/shared/StatCard";
+import { OutsourcerForm } from "@/components/outsourcers/OutsourcerForm";
+import { DeleteOutsourcerButton } from "@/components/outsourcers/DeleteOutsourcerButton";
 
 export const dynamic = "force-dynamic";
 

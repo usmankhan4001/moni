@@ -1,7 +1,7 @@
-import { PageShell } from "@/components/PageShell";
-import { SetupRequiredBanner } from "@/components/EmptyState";
-import { StatCard } from "@/components/StatCard";
-import { ConversionStamp } from "@/components/ConversionStamp";
+import { PageShell } from "@/components/layout/PageShell";
+import { SetupRequiredBanner } from "@/components/shared/EmptyState";
+import { StatCard } from "@/components/shared/StatCard";
+import { ConversionStamp } from "@/components/shared/ConversionStamp";
 import { GeneratePaymentDialog } from "@/components/payments/GeneratePaymentDialog";
 import { PaymentsEmptyState } from "@/components/payments/PaymentsEmptyState";
 import { PaymentCard } from "@/components/payments/PaymentCard";

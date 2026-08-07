@@ -1,11 +1,11 @@
 import { getAccounts, getSettings } from "@/lib/data";
 import { formatPKR, formatUSD, pluralize } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
-import { PageShell } from "@/components/PageShell";
-import { EmptyState } from "@/components/EmptyState";
-import { StatCard } from "@/components/StatCard";
-import { AccountForm } from "@/components/account-form";
-import { DeleteAccountButton } from "@/components/account-delete";
+import { PageShell } from "@/components/layout/PageShell";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { StatCard } from "@/components/shared/StatCard";
+import { AccountForm } from "@/components/accounts/AccountForm";
+import { DeleteAccountButton } from "@/components/accounts/DeleteAccountButton";
 
 export const dynamic = "force-dynamic";
 

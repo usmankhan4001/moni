@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { EmptyState } from "@/components/EmptyState";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { runAction } from "@/lib/action";
 import { createProject } from "@/app/actions";
 import type { Outsourcer } from "@/lib/data";
