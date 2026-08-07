@@ -141,11 +141,16 @@ Set the following environment variables in your Dokploy application settings:
 NODE_ENV=production
 DATABASE_URL=postgres://moni_user:moni_password@db:5432/moni_db
 DEPLOYMENT_MODE=multi_tenant
+AUTH_SECRET=your_generated_auth_secret
+MONI_DOMAIN=yourdomain.com
 R2_ACCOUNT_ID=your_cloudflare_r2_account_id
 R2_ACCESS_KEY_ID=your_cloudflare_r2_access_key
 R2_SECRET_ACCESS_KEY=your_cloudflare_r2_secret_key
 R2_BUCKET_NAME=moni-backups
 ```
+
+`MONI_DOMAIN` is the apex domain only — no scheme, no wildcard, no trailing
+slash. Traefik's Host rule is generated from it.
 
 ### 2. Dokploy Server Docker Compose Setup
 Dokploy automatically uses the included `docker-compose.yml`:
@@ -154,9 +159,26 @@ Dokploy automatically uses the included `docker-compose.yml`:
 docker-compose up -d --build
 ```
 
+The app service ships with `traefik.enable=true`, a Host rule covering both
+`yourdomain.com` and `*.yourdomain.com`, and an attachment to the external
+`dokploy-network`. Traefik needs all three to route to the container — the
+service publishes no host port by design. If the domain returns a plain-text
+`404 page not found`, that is Traefik reporting that no router matched, which
+almost always means `MONI_DOMAIN` is unset/mismatched or `dokploy-network`
+doesn't exist on the host.
+
 ### 3. Cloudflare Wildcard Tunnel Configuration
-- Point your wildcard domain rule `*.yourdomain.com` to your Dokploy server IP / container port `3000`.
-- Host header forwarding is enabled by default, allowing subdomains to resolve tenant workspaces automatically.
+- Point your wildcard hostname `*.yourdomain.com` (and the apex) at the tunnel,
+  with the origin service set to `http://localhost:80` — that is Dokploy's
+  Traefik `web` entrypoint, **not** container port `3000`. Nothing listens on
+  `3000` at the host level; Traefik reaches the container over the Docker network.
+- Leave Host header forwarding on (the Cloudflare default) so Traefik still sees
+  the original hostname and can match its router.
+
+> **Note on tenant resolution:** subdomains are cosmetic. The active workspace is
+> derived exclusively from a signed session cookie (`getTenantId()` in
+> `src/lib/tenant.ts`) — never from the subdomain or any client-supplied header.
+> Visiting another tenant's subdomain grants no access to their data.
 
 ---
 
