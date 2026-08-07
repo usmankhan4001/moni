@@ -1,5 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getDeploymentMode } from "@/lib/tenant";
+// Import from @/lib/deployment-mode, NOT @/lib/tenant. tenant.ts imports
+// `@/db` -> `pg` -> `node:util/types`, which the Edge Runtime cannot resolve;
+// pulling it in here breaks the entire Edge bundle and 500s every request.
+import { getDeploymentMode } from "@/lib/deployment-mode";
 import { getSession } from "@/lib/auth";
 
 // This middleware is the UX-layer gate — a fast redirect before render so
