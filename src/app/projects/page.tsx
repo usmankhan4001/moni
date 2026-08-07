@@ -49,25 +49,25 @@ export default async function ProjectsPage() {
       }
     >
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white border border-border/50 p-5 rounded-sm">
-          <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-2">
+        <div className="bg-card border border-border p-5 rounded-2xl shadow-sm">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">
             Total projects
           </p>
-          <p className="font-mono text-2xl font-semibold tabular-nums">{projects.length}</p>
+          <p className="font-display text-3xl font-bold tracking-tight tabular-nums">{projects.length}</p>
         </div>
-        <div className="bg-white border border-border/50 p-5 rounded-sm">
-          <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-2">
+        <div className="bg-card border border-border p-5 rounded-2xl shadow-sm">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">
             Active
           </p>
-          <p className="font-mono text-2xl font-semibold tabular-nums text-emerald-600">
+          <p className="font-display text-3xl font-bold tracking-tight tabular-nums text-emerald-600">
             {activeCount}
           </p>
         </div>
-        <div className="bg-white border border-border/50 p-5 rounded-sm">
-          <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-2">
+        <div className="bg-card border border-border p-5 rounded-2xl shadow-sm">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1.5 font-semibold">
             Active value
           </p>
-          <p className="font-mono text-2xl font-semibold tabular-nums text-primary">
+          <p className="font-display text-3xl font-bold tracking-tight tabular-nums text-primary">
             {formatUSD(activeValueUsd, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </p>
         </div>
@@ -88,7 +88,7 @@ export default async function ProjectsPage() {
             return (
               <div
                 key={project.id}
-                className="bg-white border border-border/50 rounded-sm p-5"
+                className="bg-card border border-border rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">

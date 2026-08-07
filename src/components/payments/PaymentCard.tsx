@@ -29,13 +29,13 @@ export function PaymentCard({ payment }: { payment: PaymentWithOutsourcer }) {
   const name = payment.outsourcer_name ?? "Unknown outsourcer";
 
   return (
-    <div className="bg-white border border-border/50 rounded-sm p-5 shadow-xs">
+    <div className="bg-card border border-border rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
             <h3 className="font-display text-lg text-foreground">{name}</h3>
             <span
-              className={`text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-sm font-medium ${
+              className={`text-[10px] uppercase tracking-widest px-2.5 py-0.5 rounded-full font-semibold ${
                 payment.status === "paid"
                   ? "bg-emerald-600/10 text-emerald-600"
                   : "bg-primary/10 text-primary"

@@ -52,7 +52,7 @@ export function TransactionsTable({
         </TabsList>
       </Tabs>
 
-      <div className="bg-card border border-border rounded-sm">
+      <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
         {rows.length === 0 ? (
           <div className="p-10 text-center">
             <p className="font-display text-lg text-foreground">Nothing here yet</p>
